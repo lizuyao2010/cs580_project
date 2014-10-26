@@ -1,8 +1,8 @@
 main program
-class UI
-class Render
-class pathTracer
-class light
-class cube,sphere,other objects //
+class UI //sneha1311
+class Render //Yuyang
+class pathTracer //Zuyao
+class light //mactooby
+class cube,sphere,other objects //linchi
 utility function //all
 shader strings
