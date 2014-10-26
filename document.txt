@@ -1,5 +1,5 @@
 main program
-class UI //sneha1311
+class UI //sneha
 class Render //Yuyang
 class pathTracer //Zuyao
 class light //mactooby
