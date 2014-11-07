@@ -16,3 +16,7 @@ Some good resourses:
 http://scratchapixel.com/lessons/3d-basic-lessons/lesson-1-writing-a-simple-raytracer/
 http://www.raytracegroundup.com/
 http://madebyevan.com/webgl-path-tracing/
+
+Global Illumination in 99 lines of C++
+http://www.kevinbeason.com/smallpt/
+
