@@ -1,0 +1,49 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+    <meta charset="UTF-8">
+    <style type="text/css">
+        canvas {background: #5C4033;}
+    </style>
+    <script type="text/javascript" src="sylvester.js"></script>
+    <script type="text/javascript" src="glUtils.js"></script>
+    <script type="text/javascript">
+        function MatrixHelper(){ this.matrix = Matrix.I(4); }
+        MatrixHelper.prototype = {
+            /* makePerspective */
+            make : function(fovy, aspect, znear, zfar){
+                this.ppm = makePerspective(fovy, aspect, znear, zfar);
+            },
+            /* multMatrix */
+            mult : function(m){
+                this.matrix = this.matrix.x(m);
+            },
+            /* mvTranslate */
+            trans : function(v){
+                this.mult(Matrix.Translation($V([v[0], v[1], v[2]])).ensure4x4());
+            },
+            /* setMatrixUniforms */
+            set : function(gl, sProg){
+                if(!!this.ppm){
+                      gl.uniformMatrix4fv(gl.getUniformLocation(sProg, "uPMatrix")
+                        , false, new Float32Array(this.ppm.flatten()));
+                }
+                if(!!this.matrix){
+                      gl.uniformMatrix4fv(gl.getUniformLocation(sProg, "uMVMatrix")
+                        , false, new Float32Array(this.matrix.flatten())); 
+                }
+            },
+            /* mvRotate */
+            rotate : function(angle, v){
+                var m = Matrix.Rotation(angle * Math.PI / 180.0, $V([v[0], v[1], v[2]])).ensure4x4();
+                this.mult(m);
+            }
+        }
+    </script>
+    </head>
+    <body>
+        <canvas id="canvas" width="512" height="512">
+        <script type="text/javascript" src="mainFrame.js"></script>
+        
+    </body>
+</html>
