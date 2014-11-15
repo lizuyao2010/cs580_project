@@ -37,8 +37,6 @@ Render.prototype = {
         gl.useProgram(this.renderProgram);
     //this block of code below only deal with one cube: 
     //-- this.objects[0] is the cube added
-        var cubeVertexPositionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
         var sphereVertexPositionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, sphereVertexPositionBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.objects[0].vertices), gl.STATIC_DRAW);   
@@ -67,6 +65,11 @@ UI.prototype = {
         this.objects.push(cube);
         this.renderer.setObjects(this.objects);
     },
+    addSphere: function(){
+        var sphere =  new Sphere(1,1);
+        this.objects.push(sphere);
+        this.renderer.setObjects(this.objects);
+    },
     render:function(){
         this.renderer.render();
     }
@@ -85,11 +88,12 @@ Cube = function(){
         +0.5, 0.5
       ];
     this.itemSize = 2;
-    this.numItems = 5;
-    
+    this.numItems = 4;
 }
-Sphere = function(){
-
+Sphere = function(center,radius){
+    this.center = center;
+    this.radius = radius;
+    this.temporaryTranslation =  Vector.create([0,0,0])
 }
 
 //----Light class
