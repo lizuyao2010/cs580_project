@@ -39,6 +39,8 @@ Render.prototype = {
     //-- this.objects[0] is the cube added
         var cubeVertexPositionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
+        var sphereVertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, sphereVertexPositionBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.objects[0].vertices), gl.STATIC_DRAW);   
         gl.vertexAttribPointer(this.renderVertexAttribute,this.objects[0].itemSize, gl.FLOAT, false, 0, 0);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.objects[0].numItems);
