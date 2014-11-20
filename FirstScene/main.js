@@ -198,10 +198,10 @@ Light.prototype = {
 //----geometry construction functions
 function makeSphereColumn(){
     var objects = [];
-    objects.push(new Sphere(Vector.create([0, 0.75, 0]), 0.25, nextObjectId++));
-    objects.push(new Sphere(Vector.create([0, 0.25, 0]), 0.25, nextObjectId++));
-    objects.push(new Sphere(Vector.create([0, -0.25, 0]), 0.25, nextObjectId++));
-    objects.push(new Sphere(Vector.create([0, -0.75, 0]), 0.25, nextObjectId++));
+    objects.push(new Sphere(Vector.create([0, 0.70, 0]), 0.15, nextObjectId++));
+    objects.push(new Sphere(Vector.create([0, 0.25, 0]), 0.30, nextObjectId++));
+    objects.push(new Sphere(Vector.create([0, -0.35, 0]), 0.30, nextObjectId++));
+    objects.push(new Sphere(Vector.create([0, -0.75, 0]), 0.40, nextObjectId++));
     return objects;
 }
 
@@ -318,8 +318,8 @@ function makeCalculateColor(objects){
       // calculate the normal (and change wall color)
 '     if(t == tRoom.y) {' +
 '       normal = -normalForCube(hit, roomCubeMin, roomCubeMax);' +
-        ' if(hit.x < -0.9999) surfaceColor = vec3(0.1, 0.5, 1.0);' + // blue
-'       else if(hit.x > 0.9999) surfaceColor = vec3(1.0, 0.9, 0.1);'+ // yellow
+        ' if(hit.x < -0.9999) surfaceColor = vec3(1.0, 0.0, 0.6);' + // pink
+'       else if(hit.x > 0.9999) surfaceColor = vec3(0.43, 0.05, 0.81);'+ // purple
         newDiffuseRay +
 '     } else if(t == 10000.0) { '+
 '       break;' +
@@ -448,10 +448,6 @@ var newGlossyRay =
 ' ray = normalize(reflect(ray, normal)) + uniformlyRandomVector(timeSinceStart + float(bounce)) * glossiness;' +
   specularReflection +
 ' specularHighlight = pow(specularHighlight, 3.0);';
-
-
-var fShader =  document.getElementById('fshader').textContent;
-
 
 
 function getEyeRay(matrix, x, y) {
