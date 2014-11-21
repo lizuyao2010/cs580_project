@@ -1,7 +1,11 @@
 var gl;
 var canvas;
 var glossiness = 0.6;
-var eye = Vector.create([0, 0, 2.5]);
+//camera
+var viewX=-2.5;
+var viewY=2.5;
+var viewZ=2.5;
+var eye = Vector.create([viewX, viewY, viewZ]);
 var light = Vector.create([0.4, 0.5, -0.6]);
 var nextObjectId = 0;
 
@@ -19,9 +23,72 @@ window.onload=function()
     {
         ui=new UI();
         ui.setObjects(makeSphereColumn());
-        ui.render();
     }
-    
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+    document.onkeydown = handleKeyDown;
+    document.onkeyup = handleKeyUp;
+    tick();
+}
+
+var currentlyPressedKeys = {};
+
+function handleKeyDown(event) {
+    currentlyPressedKeys[event.keyCode] = true;
+}
+
+function handleKeyUp(event) {
+    currentlyPressedKeys[event.keyCode] = false;
+}
+var Zspeed = 0;
+var Xspeed = 0;
+var Yspeed = 0;
+function handleKeys() {
+    if (currentlyPressedKeys[33]) {
+        // Page Up
+        Zspeed = 0.001;
+    } else if (currentlyPressedKeys[34]) {
+        // Page Down
+        Zspeed = -0.001;
+    } else {
+        Zspeed = 0;
+        }
+    if (currentlyPressedKeys[37] || currentlyPressedKeys[65]) {
+        // Left cursor key or A
+        Xspeed = 0.001;
+    } else if (currentlyPressedKeys[39] || currentlyPressedKeys[68]) {
+        // Right cursor key or D
+        Xspeed = -0.001;
+    } else {
+        Xspeed = 0;
+        }
+    if (currentlyPressedKeys[38] || currentlyPressedKeys[87]) {
+        // Up cursor key or W
+        Yspeed = 0.001;
+    } else if (currentlyPressedKeys[40] || currentlyPressedKeys[83]) {
+        // Down cursor key
+        Yspeed = -0.001;
+    } else {
+        Yspeed = 0;
+    }
+
+}
+var lastTime=0;
+function animate() {
+    var timeNow = new Date().getTime();
+    if (lastTime != 0) {
+        var elapsed = timeNow - lastTime;
+        viewY += Yspeed * elapsed;
+        viewX += Xspeed * elapsed;
+            viewZ += Zspeed * elapsed;
+    }
+    lastTime = timeNow;
+ }
+function tick() {
+    requestAnimFrame(tick);
+    handleKeys();
+    ui.render();
+    animate();
 }
 //---Render class
 Render = function()
@@ -46,6 +113,7 @@ Render.prototype = {
     */
     render:function(){
         gl.useProgram(this.renderProgram);
+        eye = Vector.create([viewX, viewY, viewZ]);
         var modelview = makeLookAt(eye.elements[0], eye.elements[1], eye.elements[2], 0, 0, 0, 0, 1, 0);
         var projection = makePerspective(55, 1, 0.1, 100);
         var modelviewProjection = projection.multiply(modelview);
@@ -79,7 +147,7 @@ Render.prototype = {
         +1, -1,
         +1, +1
       ];
-
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     var type = gl.getExtension('OES_texture_float') ? gl.FLOAT : gl.UNSIGNED_BYTE;
         // create texture 
         this.textures = gl.createTexture();
@@ -574,3 +642,4 @@ Matrix.prototype.flatten = function ()
             result.push(this.elements[i][j]);
     return result;
 }
+
