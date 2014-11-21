@@ -23,12 +23,12 @@ window.onload=function()
     {
         ui=new UI();
         ui.setObjects(makeSphereColumn());
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.enable(gl.DEPTH_TEST);
+        document.onkeydown = handleKeyDown;
+        document.onkeyup = handleKeyUp;
+        tick();
     }
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    gl.enable(gl.DEPTH_TEST);
-    document.onkeydown = handleKeyDown;
-    document.onkeyup = handleKeyUp;
-    tick();
 }
 
 var currentlyPressedKeys = {};
