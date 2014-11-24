@@ -491,8 +491,8 @@ function makeCalculateColor(objects){
       // calculate the normal (and change wall color)
 '     if(t == tRoom.y) {' +
 '       normal = -normalForCube(hit, roomCubeMin, roomCubeMax);' +
-        ' if(hit.x < -0.9999) surfaceColor = vec3(1.0, 0.0, 0.6);' + // pink
-'       else if(hit.x > 0.9999) surfaceColor = vec3(0.43, 0.05, 0.81);'+ // purple
+        ' if(hit.x < -2.9999) surfaceColor = vec3(1.0, 0.0, 0.6);' + // pink
+'       else if(hit.x > 2.9999) surfaceColor = vec3(0.43, 0.05, 0.81);'+ // purple
         newDiffuseRay +
 '     } else if(t == 10000.0) { '+
 '       break;' +
@@ -538,8 +538,8 @@ var declareVariable =
 ' uniform float timeSinceStart;' +
 ' uniform sampler2D texture;' +
 ' uniform float glossiness;' +
-' vec3 roomCubeMin = vec3(-1.0, -1.0, -1.0);' +
-' vec3 roomCubeMax = vec3(1.0, 1.0, 1.0);';
+' vec3 roomCubeMin = vec3(-3.0);' +
+' vec3 roomCubeMax = vec3(3.0);';
 
 var functionCode = 
 'vec2 intersectCube(vec3 origin, vec3 ray, vec3 cubeMin, vec3 cubeMax) {  '+ 
