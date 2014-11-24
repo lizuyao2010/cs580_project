@@ -6,13 +6,13 @@ var viewX=-2.5;
 var viewY=2.5;
 var viewZ=2.5;
 var eye = Vector.create([viewX, viewY, viewZ]);
-var light = Vector.create([0.4, 0.5, -0.6]);
+var light = Vector.create([0.9, 0.5, -0.6]);
 var nextObjectId = 0;
 
 var MATERIAL_DIFFUSE = 0;
 var MATERIAL_MIRROR = 1;
 var MATERIAL_GLOSSY = 2;
-var material = MATERIAL_DIFFUSE;
+var material = MATERIAL_GLOSSY;
 window.onload=function()
 {
     gl=null;
@@ -27,17 +27,24 @@ window.onload=function()
         gl.enable(gl.DEPTH_TEST);
         document.onkeydown = handleKeyDown;
         document.onkeyup = handleKeyUp;
+        var start = new Date();
         tick();
+        setInterval(function(){ 
+            ui.render((new Date() - start) * 0.001); 
+        }, 1000 / 60);
+        
     }
+    
 }
-
 var currentlyPressedKeys = {};
 
 function handleKeyDown(event) {
+    ui.renderer.sampleCount=0;
     currentlyPressedKeys[event.keyCode] = true;
 }
 
 function handleKeyUp(event) {
+    
     currentlyPressedKeys[event.keyCode] = false;
 }
 var Zspeed = 0;
@@ -80,14 +87,14 @@ function animate() {
         var elapsed = timeNow - lastTime;
         viewY += Yspeed * elapsed;
         viewX += Xspeed * elapsed;
-            viewZ += Zspeed * elapsed;
+        viewZ += Zspeed * elapsed;
     }
     lastTime = timeNow;
  }
 function tick() {
     requestAnimFrame(tick);
     handleKeys();
-    ui.render();
+    
     animate();
 }
 //---Render class
@@ -95,78 +102,101 @@ Render = function()
 {
     this.objects=[];
     this.uniforms = {};
-}
-
-Render.prototype = {
-    setObjects: function(objects){
-        this.objects = objects;
-        this.renderProgram = getProgram(makeTracerVertexShader(this.objects), makeTracerFragmentShader(this.objects));
-        this.renderVertexAttribute = gl.getAttribLocation(this.renderProgram, 'vertex');
-        gl.enableVertexAttribArray(this.renderVertexAttribute);
-    },
-    /*
-    steps for gl to draw a scene:
-    1. set program, attach vertex shader and fragment shader
-    2. set and bind vertex buffer to the vertices
-    3. point to the current buffer to draw
-    4. call drawArrays
-    */
-    render:function(){
-        gl.useProgram(this.renderProgram);
-        eye = Vector.create([viewX, viewY, viewZ]);
-        var modelview = makeLookAt(eye.elements[0], eye.elements[1], eye.elements[2], 0, 0, 0, 0, 1, 0);
-        var projection = makePerspective(55, 1, 0.1, 100);
-        var modelviewProjection = projection.multiply(modelview);
-        //set obj
-        for(var i = 0; i < this.objects.length; i++) {
-            this.objects[i].setUniforms(this);
-          }
-        //set obj
-
-        var jitter = Matrix.Translation(Vector.create([Math.random() * 2 - 1, Math.random() * 2 - 1, 0]).multiply(1 / 512));
-        var inverse = jitter.multiply(modelviewProjection).inverse();
-        var matrix = inverse;
-        this.uniforms.eye = eye;
-        this.uniforms.glossiness = glossiness;
-        this.uniforms.ray00 = getEyeRay(matrix, -1, -1);
-        this.uniforms.ray01 = getEyeRay(matrix, -1, +1);
-        this.uniforms.ray10 = getEyeRay(matrix, +1, -1);
-        this.uniforms.ray11 = getEyeRay(matrix, +1, +1);
-        setUniforms(this.renderProgram, this.uniforms);
-    //this block of code below only deal with one cube: 
-    //-- this.objects[0] is the cube added
-        var cubeVertexPositionBuffer = gl.createBuffer();
-    /*    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.objects[0].vertices), gl.STATIC_DRAW);   
-        gl.vertexAttribPointer(this.renderVertexAttribute,this.objects[0].itemSize, gl.FLOAT, false, 0, 0);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.objects[0].numItems);
-    */
     var vertices = [
         -1, -1,
         -1, +1,
         +1, -1,
         +1, +1
-      ];
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    ];
+
+    // create vertex buffer
+    this.vertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+
+    // create framebuffer
+    this.framebuffer = gl.createFramebuffer();
+
+    // create textures
     var type = gl.getExtension('OES_texture_float') ? gl.FLOAT : gl.UNSIGNED_BYTE;
-        // create texture 
-        this.textures = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, this.textures);
+    this.textures = [];
+    for(var i = 0; i < 2; i++) {
+    this.textures.push(gl.createTexture());
+        gl.bindTexture(gl.TEXTURE_2D, this.textures[i]);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 512, 512, 0, gl.RGB, type, null);
-      // create vertex buffer
-        this.vertexBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    }
+    gl.bindTexture(gl.TEXTURE_2D, null);
 
-        this.renderVertexAttribute = gl.getAttribLocation(this.renderProgram, 'vertex');
-        gl.enableVertexAttribArray(this.renderVertexAttribute);
-        gl.bindTexture(gl.TEXTURE_2D, this.textures);
+    // create render shader
+    this.renderProgram = getProgram(renderVertexSource, renderFragmentSource);
+    this.renderVertexAttribute = gl.getAttribLocation(this.renderProgram, 'vertex');
+    gl.enableVertexAttribArray(this.renderVertexAttribute);
+
+    // objects and shader will be filled in when setObjects() is called
+    this.objects = [];
+    this.sampleCount = 0;
+    this.tracerProgram = null;
+}
+
+Render.prototype = {
+    setObjects: function(objects){
+        if(this.tracerProgram != null) {
+            gl.deleteProgram(this.shaderProgram);
+        }
+        this.sampleCount=0;
+        this.objects = objects;
+        this.tracerProgram = getProgram(makeTracerVertexShader(this.objects), makeTracerFragmentShader(this.objects));
+        this.tracerVertexAttribute = gl.getAttribLocation(this.tracerProgram, 'vertex');
+        gl.enableVertexAttribArray(this.tracerVertexAttribute);
+    },
+    
+    render:function(timeSinceStart){
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.useProgram(this.renderProgram);
+        eye = Vector.create([viewX, viewY, viewZ]);
+        gl.bindTexture(gl.TEXTURE_2D, this.textures[0]);
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
         gl.vertexAttribPointer(this.renderVertexAttribute, 2, gl.FLOAT, false, 0, 0);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    //----
+        
+        var modelview = makeLookAt(eye.elements[0], eye.elements[1], eye.elements[2], 0, 0, 0, 0, 1, 0);
+        var projection = makePerspective(55, 1, 0.1, 100);
+        var modelviewProjection = projection.multiply(modelview);
+        
+        var jitter = Matrix.Translation(Vector.create([Math.random() * 2 - 1, Math.random() * 2 - 1, 0]).multiply(1 / 512));
+        var inverse = jitter.multiply(modelviewProjection).inverse();
+        this.modelviewProjection=modelviewProjection;
+        var matrix = inverse;
+        
+        
+        for(var i = 0; i < this.objects.length; i++) {
+            this.objects[i].setUniforms(this);
+          }
+        this.uniforms.eye = eye;
+        this.uniforms.glossiness = glossiness;
+        this.uniforms.timeSinceStart = timeSinceStart;
+        this.uniforms.ray00 = getEyeRay(matrix, -1, -1);
+        this.uniforms.ray01 = getEyeRay(matrix, -1, +1);
+        this.uniforms.ray10 = getEyeRay(matrix, +1, -1);
+        this.uniforms.ray11 = getEyeRay(matrix, +1, +1);
+        this.uniforms.textureWeight = this.sampleCount / (this.sampleCount+1);
+        gl.useProgram(this.tracerProgram);
+        setUniforms(this.tracerProgram, this.uniforms);
+        
+        gl.useProgram(this.tracerProgram);
+        
+        gl.bindTexture(gl.TEXTURE_2D, this.textures[0]);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.textures[1], 0);
+        gl.vertexAttribPointer(this.tracerVertexAttribute, 2, gl.FLOAT, false, 0, 0);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        
+        this.textures.reverse();
+        this.sampleCount++;
     }
 
     
@@ -185,8 +215,8 @@ UI.prototype = {
         this.renderer.setObjects(this.objects);
     },
 
-    render:function(){
-        this.renderer.render();
+    render:function(timeSinceStart){
+        this.renderer.render(timeSinceStart);
     }
     
 }
@@ -517,6 +547,22 @@ var newGlossyRay =
   specularReflection +
 ' specularHighlight = pow(specularHighlight, 3.0);';
 
+//zyy
+var renderVertexSource =
+' attribute vec3 vertex;' +
+' varying vec2 texCoord;' +
+' void main() {' +
+'   texCoord = vertex.xy * 0.5 + 0.5;' +
+'   gl_Position = vec4(vertex, 1.0);' +
+' }';
+
+var renderFragmentSource =
+' precision highp float;' +
+' varying vec2 texCoord;' +
+' uniform sampler2D texture;' +
+' void main() {' +
+'   gl_FragColor = texture2D(texture, texCoord);' +
+' }';
 
 function getEyeRay(matrix, x, y) {
   return matrix.multiply(Vector.create([x, y, 0, 1])).divideByW().ensure3().subtract(eye);
@@ -642,4 +688,3 @@ Matrix.prototype.flatten = function ()
             result.push(this.elements[i][j]);
     return result;
 }
-
