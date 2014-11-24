@@ -12,7 +12,8 @@ var nextObjectId = 0;
 var MATERIAL_DIFFUSE = 0;
 var MATERIAL_MIRROR = 1;
 var MATERIAL_GLOSSY = 2;
-var material = MATERIAL_GLOSSY;
+var MATERIAL_GLASS = 3;
+var material = MATERIAL_GLASS;
 window.onload=function()
 {
     gl=null;
@@ -499,7 +500,7 @@ function makeCalculateColor(objects){
 '     } else {' +
 '       if(false) ;' + // hack to discard the first 'else' in 'else if'
         concat(objects, function(o){ return o.getNormalCalculationCode(); }) +
-        [newDiffuseRay, newReflectiveRay, newGlossyRay][material] +
+        [newDiffuseRay, newReflectiveRay, newGlossyRay, newRefractiveRay][material] +
 '     }' +
 
       // compute diffuse lighting contribution
@@ -621,6 +622,20 @@ var newGlossyRay =
 ' ray = normalize(reflect(ray, normal)) + uniformlyRandomVector(timeSinceStart + float(bounce)) * glossiness;' +
   specularReflection +
 ' specularHighlight = pow(specularHighlight, 3.0);';
+
+var newRefractiveRay = 
+' float ratio = 0.6;'+
+' ray = normalize(ray);'+
+' if(dot(ray,normal)>0.0){'+
+' ratio = 1.0/ratio;'+
+' normal = -normal;'+
+' ray = refract(ray, normal, ratio);}'+
+' else'+
+' ray = refract(ray, normal, ratio);'+
+' vec3 refractedLight = normalize(refract(normalize(light - hit), normal, ratio));' +
+' specularHighlight = max(0.0, dot(refractedLight, normalize(hit - origin)));'+
+' specularHighlight = 1.0 * pow(specularHighlight, 10.0);';
+
 
 //zyy
 var renderVertexSource =
