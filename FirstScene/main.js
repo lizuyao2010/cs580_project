@@ -23,8 +23,8 @@ window.onload=function()
     {
         ui=new UI();
         ui.setObjects(makeSphereColumn());
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        gl.enable(gl.DEPTH_TEST);
+        //gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        //gl.enable(gl.DEPTH_TEST);
         document.onkeydown = handleKeyDown;
         document.onkeyup = handleKeyUp;
         var start = new Date();
@@ -153,7 +153,7 @@ Render.prototype = {
     },
     
     render:function(timeSinceStart){
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        //gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.useProgram(this.renderProgram);
         eye = Vector.create([viewX, viewY, viewZ]);
         gl.bindTexture(gl.TEXTURE_2D, this.textures[0]);
