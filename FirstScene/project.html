@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <html>
     <head>
     <meta charset="UTF-8">
@@ -37,4 +38,45 @@
         Use the cursor keys or WASD to control the x,y direction of the camera, and use page up and down to control the z direction of the camera.
         <script type="text/javascript" src="main.js"></script>      
     </body>
+=======
+<html>
+    <head>
+    <meta charset="UTF-8">
+    <style type="text/css">
+        canvas {background: #5C4033;}
+        #popup{
+            background-color: rgba(128,128,128,0.7);
+            display: none;
+            position: absolute;
+        }
+    </style>
+    <script type="text/javascript" src = "sylvester.src.js"></script>
+    <script type="text/javascript" src = "webgl-utils.js"></script>
+    </head>
+    <body>
+        <div id = 'popup'>
+            <table>
+                <tbody>
+                    <tr><td> Material:</td> 
+                        <td><select id = 'material'>
+                              <option value="0">Diffuse</option>
+                              <option value="1">Mirroe</option>
+                              <option value="2">Glossy</option>
+                              <option value="3">Glass</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr><td>Color: </td>
+                    <td>RGB<input type = 'text' size = '10' id = 'rgb' name='rgb'/></td>
+                    </tr>
+                    <tr><td><button type="button" id = 'set'/>OK</td></tr>
+                </tbody>
+            </table>
+        </div>        
+        <canvas id="canvas" width="512" height="512"></canvas>
+        <br>
+        Use the cursor keys or WASD to control the x,y direction of the camera, and use page up and down to control the z direction of the camera.
+        <script type="text/javascript" src="main.js"></script>      
+    </body>
+>>>>>>> FETCH_HEAD
 </html>

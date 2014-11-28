@@ -29,7 +29,11 @@ var MATERIAL_DIFFUSE = 0;
 var MATERIAL_MIRROR = 1;
 var MATERIAL_GLOSSY = 2;
 var MATERIAL_GLASS = 3;
+<<<<<<< HEAD
 var material = MATERIAL_MIRROR;
+=======
+var material = 3;
+>>>>>>> FETCH_HEAD
 window.onload=function()
 {
     gl=null;
@@ -53,6 +57,10 @@ window.onload=function()
     }
     
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> FETCH_HEAD
 var mouseDown = false, oldX, oldY;
 
 document.onmousedown = function(event) {
@@ -77,8 +85,15 @@ document.onmousedown = function(event) {
     mouseDown = !ui.mouseDown(mouse.x, mouse.y);
     return false;
 }
+<<<<<<< HEAD
     return true;
 };
+=======
+
+  return true;
+};
+
+>>>>>>> FETCH_HEAD
 var currentlyPressedKeys = {};
 
 
@@ -149,6 +164,9 @@ Render = function()
     this.tempColor = null;
     this.objects=[];
     this.uniforms = {};
+    this.selectedObject = null;
+    this.selectedIndex = -1;
+    this.tempColor = null;
     var vertices = [
         -1, -1,
         -1, +1,
@@ -203,6 +221,7 @@ Render = function()
 
 Render.prototype = {
     setObjects: function(objects){
+
         if(this.tracerProgram != null) {
             gl.deleteProgram(this.shaderProgram);
         }
@@ -322,9 +341,15 @@ UI.prototype = {
 
 //-----Shapes class
 //--Cube (this is just a rectangle sample, cube not implemented) 
+<<<<<<< HEAD
 function Cube(minCorner, maxCorner, id,color,material) {
+=======
+function Cube(minCorner, maxCorner, id, color, mat) {
+>>>>>>> FETCH_HEAD
   this.minCorner = minCorner;
   this.maxCorner = maxCorner;
+  this.color = color==undefined ? Vector.create([0.75,0.75,0.75]):color;
+  this.material = mat==undefined ? material : mat;
   this.minStr = 'cubeMin' + id;
   this.maxStr = 'cubeMax' + id;
   this.intersectStr = 'tCube' + id;
@@ -359,6 +384,7 @@ Cube.prototype.getMinimumIntersectCode = function() {
   return '' +
   // have to compare intersectStr.x < intersectStr.y otherwise two coplanar
   // cubes will look wrong (one cube will "steal" the hit from the other)
+<<<<<<< HEAD
 ' else if(t == ' + this.intersectStr + '.x && ' + this.intersectStr + '.x < ' + this.intersectStr + '.y) normal = normalForCube(hit, ' + this.minStr + ', ' + this.maxStr + ');';
 };*/
 Cube.prototype.getNormalCalculationCode = function() {
@@ -368,6 +394,11 @@ Cube.prototype.getNormalCalculationCode = function() {
 ' else if(t == ' + this.intersectStr + '.x && ' + this.intersectStr + '.x < ' + this.intersectStr + '.y) {normal = normalForCube(hit, ' + this.minStr + ', ' + this.maxStr + ');'+[newDiffuseRay, newReflectiveRay, newGlossyRay,newRefractiveRay][this.material]+
       ' surfaceColor = vec3'+this.color.toString()+';}';
 //      ', ' + this.maxStr + ');'+[newDiffuseRay, newReflectiveRay, newGlossyRay,newRefractiveRay][this.material]+'}';
+=======
+' else if(t == ' + this.intersectStr + '.x && ' + this.intersectStr + '.x < ' + this.intersectStr + '.y){ normal = normalForCube(hit, ' + this.minStr + ', ' + this.maxStr + ');'+
+' surfaceColor = vec3'+this.color.toString()+';'+
+'}';
+>>>>>>> FETCH_HEAD
 };
 
 
@@ -410,14 +441,23 @@ Cube.intersect = function(origin, ray, cubeMin, cubeMax) {
   return Number.MAX_VALUE;
 };
 
+<<<<<<< HEAD
 Sphere = function(center, radius, id,color,material){
+=======
+Sphere = function(center, radius, id, color, mat){
+>>>>>>> FETCH_HEAD
     this.center = center;
     this.radius = radius;
+    this.color = color==undefined ? Vector.create([0.75,0.75,0.75]):color;
+    this.material = mat==undefined ? material : mat;
     this.centerVar = 'sCenter'+id;
     this.radiusVar = 'sRadius'+id;
     this.intersectVar = 'tSphere' + id;
+<<<<<<< HEAD
     this.material = material;
     this.color = color==undefined ? Vector.create([0.75,0.75,0.75]):color;
+=======
+>>>>>>> FETCH_HEAD
     this.temporaryTranslation = Vector.create([0, 0, 0]);
 }
 Sphere.prototype = {
@@ -444,9 +484,22 @@ Sphere.prototype = {
         ' if(' + this.intersectVar + ' < 1.0) return 0.0;';
     },
     getNormalCalculationCode : function() {
+<<<<<<< HEAD
     return '' +
     ' else if(t == ' + this.intersectVar + ') {normal = normalForSphere(hit, ' + this.centerVar + ', ' + this.radiusVar + ');'+[newDiffuseRay, newReflectiveRay, newGlossyRay,newRefractiveRay][this.material]+
         ' surfaceColor = vec3'+this.color.toString()+'; }';
+=======
+        return '' +
+        ' else if(t == ' + this.intersectVar + ') {normal = normalForSphere(hit, ' + this.centerVar + ', ' + this.radiusVar + ');'+
+        ' surfaceColor = vec3'+this.color.toString()+';'+
+        '}';
+    },
+    getMinCorner: function() {
+        return this.center.add(this.temporaryTranslation).subtract(Vector.create([this.radius, this.radius, this.radius]));
+    },
+    getMaxCorner: function() {
+      return this.center.add(this.temporaryTranslation).add(Vector.create([this.radius, this.radius, this.radius]));
+>>>>>>> FETCH_HEAD
     },
     /*getNormalCalculationCode : function() {
     return '' +
@@ -458,6 +511,7 @@ Sphere.prototype = {
         renderer.uniforms[this.centerVar] = this.center;
         renderer.uniforms[this.radiusVar] = this.radius;
     },
+<<<<<<< HEAD
     getMinCorner: function() {
         return this.center.add(this.temporaryTranslation).subtract(Vector.create([this.radius, this.radius, this.radius]));
     },
@@ -465,9 +519,11 @@ Sphere.prototype = {
       return this.center.add(this.temporaryTranslation).add(Vector.create([this.radius, this.radius, this.radius]));
     },
         intersect: function(origin, ray){
+=======
+    intersect: function(origin, ray){
+>>>>>>> FETCH_HEAD
         return Sphere.intersect(origin, ray, this.center.add(this.temporaryTranslation), this.radius);
     }
-
 }
 
 Sphere.intersect = function(origin, ray, center, radius) {
@@ -484,10 +540,14 @@ Sphere.intersect = function(origin, ray, center, radius) {
   }
   return Number.MAX_VALUE;
 };
+<<<<<<< HEAD
 function RealLight(direction,lightColor){
     this.color=lightColor;
     this.direction=direction;
 }
+=======
+
+>>>>>>> FETCH_HEAD
 //----Light class
 Light = function(direction,lightColor){
     this.lightStr=new Array();
@@ -532,6 +592,7 @@ Light.prototype = {
 //----geometry construction functions
 function makeSphereColumn(){
     var objects = [];
+<<<<<<< HEAD
     objects.push(new Sphere(Vector.create([0, 0.70, 0]), 0.15, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1));
     objects.push(new Sphere(Vector.create([0, 0.25, 0]), 0.30, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),0));
     objects.push(new Sphere(Vector.create([0, -0.35, 0]), 0.30, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),2));
@@ -546,6 +607,15 @@ function makeSphereColumn(){
     //objects.push(new Cube( Vector.create([-3, -3, -3]), Vector.create([-2.99, 3, 3]) , nextObjectId++,1)); 
     
     
+=======
+    objects.push(new Sphere(Vector.create([-0.7, 0.75, 0]), 0.2, nextObjectId++));
+
+//    objects.push(new Sphere(Vector.create([-0.70, 0.25, 0]), 0.22, nextObjectId++, Vector.create([1.0, 1.0, 0.0])));
+    objects.push(new Sphere(Vector.create([-0.70, 0.25, 0]), 0.40, nextObjectId++));
+//    objects.push(new Sphere(Vector.create([-0.70, -0.35, 0]), 0.30, nextObjectId++));
+    objects.push(new Sphere(Vector.create([-0.70, -0.85, 0]), 0.30, nextObjectId++, Vector.create([0.5, 0.0, 0.5])));
+    objects.push(new Cube( Vector.create([0.5, -0.75, -0.5]), Vector.create([0.9, 0.7, 0.5]) , nextObjectId++)); 
+>>>>>>> FETCH_HEAD
     return objects;
 }
 
@@ -656,6 +726,7 @@ function makeCalculateColor(objects){
 
     // main raytracing loop
 '   for(int bounce = 0; bounce < 5; bounce++) {' +
+'       vec3 toLight;'+
       // compute the intersection with everything
 '     vec2 tRoom = intersectCube(origin, ray, roomCubeMin, roomCubeMax);' +
       concat(objects, function(o){ return o.getIntersectCode(); }) +
@@ -670,7 +741,7 @@ function makeCalculateColor(objects){
 '     vec3 surfaceColor = vec3(0.75);' +
 '     float specularHighlight = 0.0;' +
 '     vec3 normal;' +
-
+'       toLight = light - hit;'+
       // calculate the normal (and change wall color)
 '     if(t == tRoom.y) {' +
 '       normal = -normalForCube(hit, roomCubeMin, roomCubeMax);' +
@@ -689,7 +760,6 @@ function makeCalculateColor(objects){
 '     }' +
 
       // compute diffuse lighting contribution
-'     vec3 toLight = light - hit;' +
 '     float diffuse = max(0.0, dot(normalize(toLight), normal));' +
 
       // trace a shadow ray to the light
@@ -761,11 +831,12 @@ var functionCode =
 ' float intersectSphere(vec3 origin, vec3 ray, vec3 sCenter, float sRadius) {   '+ 
 '     vec3 toSphere = origin - sCenter; '+ 
 '     float a = dot(ray, ray); '+ 
-'    float b = 2.0 * dot(toSphere, ray); '+ 
-'     float c = dot(toSphere, toSphere) - sRadius*sRadius; '+ 
+'     float b = 2.0 * dot(toSphere, ray); '+ 
+'     float c = dot(toSphere, toSphere) - sRadius*sRadius; '+  
 '     float discriminant = b*b - 4.0*a*c; '+ 
 '     if(discriminant > 0.0) {     float t = (-b - sqrt(discriminant)) / (2.0 * a); '+ 
- '     if(t > 0.0) return t; '+ 
+'     if(t > 0.00001) return t; '+ 
+'     else if(t > -0.00001) {return (-b + sqrt(discriminant)) / (2.0 * a);}'+
 '     } '+ 
 '     return 10000.0; '+ 
 '  } '+ 
@@ -808,7 +879,8 @@ var specularReflection =
 ' specularHighlight = max(0.0, dot(reflectedLight, normalize(hit - origin)));';
 
 var newDiffuseRay =
-' ray = cosineWeightedDirection(timeSinceStart + float(bounce), normal);';
+' ray = cosineWeightedDirection(timeSinceStart + float(bounce), normal);'+
+' ';
 
 // update ray using normal according to a specular reflection
 var newReflectiveRay =
@@ -823,6 +895,7 @@ var newGlossyRay =
 
 //linchi
 var newRefractiveRay = 
+<<<<<<< HEAD
 ' float ratio = 1.1;'+
 ' if(dot(ray,normal) < 0.0001){'+
 ' normal = -normal;'+
@@ -833,6 +906,17 @@ var newRefractiveRay =
 ' specularHighlight = max(0.0, dot(refractedLight, normalize(hit - origin)));'
 //' specularHighlight = 0.0;';
 
+=======
+' float ratio = 1.0;'+
+' if(dot(ray,normal)>0.0){'+
+' ratio = 1.0/ratio;'+
+' normal = -normal;'+
+' ray = normalize(refract(ray, normal, ratio));}'+
+' else'+
+' ray = normalize(refract(ray, normal, ratio));'+
+  specularReflection +
+' specularHighlight = 2.0 * pow(specularHighlight, 20.0);' ;
+>>>>>>> FETCH_HEAD
 
 //zyy
 var renderVertexSource =
@@ -933,7 +1017,10 @@ Vector.prototype.ensure3 = function() {
 Vector.prototype.ensure4 = function(w) {
   return Vector.create([this.elements[0], this.elements[1], this.elements[2], w]);
 };
+<<<<<<< HEAD
 
+=======
+>>>>>>> FETCH_HEAD
 Vector.prototype.toString = function(){
     return '('+this.elements.join(', ')+')';
 }
@@ -945,7 +1032,6 @@ Vector.prototype.divideByW = function() {
   }
   return Vector.create(newElements);
 };
-
 Vector.prototype.componentDivide = function(vector) {
   if(this.elements.length != vector.elements.length) {
     return null;
@@ -988,6 +1074,51 @@ Vector.prototype.minComponent = function() {
   return value;
 };
 
+<<<<<<< HEAD
+Vector.prototype.componentDivide = function(vector) {
+  if(this.elements.length != vector.elements.length) {
+    return null;
+  }
+  var newElements = [];
+  for(var i = 0; i < this.elements.length; i++) {
+    newElements.push(this.elements[i] / vector.elements[i]);
+  }
+  return Vector.create(newElements);
+};
+
+
+Vector.min = function(a, b) {
+  if(a.length != b.length) {
+    return null;
+  }
+  var newElements = [];
+  for(var i = 0; i < a.elements.length; i++) {
+    newElements.push(Math.min(a.elements[i], b.elements[i]));
+  }
+  return Vector.create(newElements);
+};
+
+Vector.max = function(a, b) {
+  if(a.length != b.length) {
+    return null;
+  }
+  var newElements = [];
+  for(var i = 0; i < a.elements.length; i++) {
+    newElements.push(Math.max(a.elements[i], b.elements[i]));
+  }
+  return Vector.create(newElements);
+};
+
+Vector.prototype.minComponent = function() {
+  var value = Number.MAX_VALUE;
+  for(var i = 0; i < this.elements.length; i++) {
+    value = Math.min(value, this.elements[i]);
+  }
+  return value;
+};
+
+=======
+>>>>>>> FETCH_HEAD
 Vector.prototype.maxComponent = function() {
   var value = -Number.MAX_VALUE;
   for(var i = 0; i < this.elements.length; i++) {
@@ -995,8 +1126,11 @@ Vector.prototype.maxComponent = function() {
   }
   return value;
 };
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> FETCH_HEAD
 Matrix.Translation = function (v)
 {
   if (v.elements.length == 2) {
@@ -1031,9 +1165,12 @@ Matrix.prototype.flatten = function ()
 }
 
 
+<<<<<<< HEAD
 
 //lc
 
+=======
+>>>>>>> FETCH_HEAD
 function canvasMousePos(event) {
   var mousePos = eventPos(event);
   var canvasPos = elementPos(canvas);
@@ -1071,4 +1208,8 @@ function hideProperty(){
 }
 
 function setProperty(){
+<<<<<<< HEAD
+=======
+
+>>>>>>> FETCH_HEAD
 }
