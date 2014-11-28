@@ -13,7 +13,7 @@ var MATERIAL_DIFFUSE = 0;
 var MATERIAL_MIRROR = 1;
 var MATERIAL_GLOSSY = 2;
 var MATERIAL_GLASS = 3;
-var material = MATERIAL_GLASS;
+var material = 3;
 window.onload=function()
 {
     gl=null;
@@ -37,6 +37,35 @@ window.onload=function()
     }
     
 }
+
+var mouseDown = false, oldX, oldY;
+
+document.onmousedown = function(event) {
+    if(event.target.id=='set'){
+    //    alert("OK");
+        var sel = document.getElementById("material");
+        var selMaterial = sel.options[sel.selectedIndex].value;
+        var selRGB = document.getElementById("rgb").value;
+    //    ui.renderer.setProperty(selMaterial, selRGB);
+        hideProperty();
+        return;
+    }
+ /*   else if(document.getElementById("popup").style.display!='none'){
+        alert("pop");
+        return;
+    }*/
+    var mouse = canvasMousePos(event);
+    oldX = mouse.x;
+    oldY = mouse.y;
+
+    if(mouse.x >= 0 && mouse.x < 512 && mouse.y >= 0 && mouse.y < 512) {
+    mouseDown = !ui.mouseDown(mouse.x, mouse.y);
+    return false;
+}
+
+  return true;
+};
+
 var currentlyPressedKeys = {};
 
 function handleKeyDown(event) {
@@ -103,6 +132,9 @@ Render = function()
 {
     this.objects=[];
     this.uniforms = {};
+    this.selectedObject = null;
+    this.selectedIndex = -1;
+    this.tempColor = null;
     var vertices = [
         -1, -1,
         -1, +1,
@@ -143,6 +175,7 @@ Render = function()
 
 Render.prototype = {
     setObjects: function(objects){
+
         if(this.tracerProgram != null) {
             gl.deleteProgram(this.shaderProgram);
         }
@@ -198,6 +231,12 @@ Render.prototype = {
         
         this.textures.reverse();
         this.sampleCount++;
+    },
+    setProperty:function(selMaterial, selRGB){
+        this.objects[this.selectedIndex].material = selMaterial;
+        var rgb = selRGB.split(',');
+        this.objects[this.selectedIndex].color = Vector.create([parseFloat(rgb[0]),parseFloat(rgb[1]),parseFloat(rgb[2])]);
+        this.setObjects(this.objects);
     }
 
     
@@ -218,6 +257,36 @@ UI.prototype = {
 
     render:function(timeSinceStart){
         this.renderer.render(timeSinceStart);
+    },
+    mouseDown: function(x,y){
+        //change highlighted back to normal
+        if(this.renderer.tempColor != null){
+            this.objects[this.renderer.selectedIndex].color = this.renderer.tempColor;
+            this.renderer.selectedIndex = -1;
+            this.renderer.setObjects(this.objects);
+            hideProperty();
+            this.renderer.tempColor = null;
+        }
+        var t =  Number.MAX_VALUE;
+        var origin = eye;
+        var ray = getEyeRay(this.renderer.modelviewProjection.inverse(), (x / 512) * 2 - 1, 1 - (y / 512) * 2);
+        this.renderer.selectedObject = null;
+        this.renderer.selectedIndex = -1;
+        for(var i = 1; i < this.objects.length; i++) {
+            var objectT = this.objects[i].intersect(origin, ray);
+            if(objectT < t) {
+                t = objectT;
+                this.renderer.selectedObject = this.objects[i];
+                this.renderer.selectedIndex = i;
+            }
+        }
+       
+        if(t < Number.MAX_VALUE){
+            this.renderer.tempColor = this.objects[this.renderer.selectedIndex].color;
+            this.objects[this.renderer.selectedIndex].color = Vector.create([0.0,1.0,1.0]);
+            this.renderer.setObjects(this.objects);
+            showProperty(x,y);
+        }
     }
     
 }
@@ -226,9 +295,11 @@ UI.prototype = {
 
 //-----Shapes class
 //--Cube (this is just a rectangle sample, cube not implemented) 
-function Cube(minCorner, maxCorner, id) {
+function Cube(minCorner, maxCorner, id, color, mat) {
   this.minCorner = minCorner;
   this.maxCorner = maxCorner;
+  this.color = color==undefined ? Vector.create([0.75,0.75,0.75]):color;
+  this.material = mat==undefined ? material : mat;
   this.minStr = 'cubeMin' + id;
   this.maxStr = 'cubeMax' + id;
   this.intersectStr = 'tCube' + id;
@@ -261,7 +332,9 @@ Cube.prototype.getNormalCalculationCode = function() {
   return '' +
   // have to compare intersectStr.x < intersectStr.y otherwise two coplanar
   // cubes will look wrong (one cube will "steal" the hit from the other)
-' else if(t == ' + this.intersectStr + '.x && ' + this.intersectStr + '.x < ' + this.intersectStr + '.y) normal = normalForCube(hit, ' + this.minStr + ', ' + this.maxStr + ');';
+' else if(t == ' + this.intersectStr + '.x && ' + this.intersectStr + '.x < ' + this.intersectStr + '.y){ normal = normalForCube(hit, ' + this.minStr + ', ' + this.maxStr + ');'+
+' surfaceColor = vec3'+this.color.toString()+';'+
+'}';
 };
 
 Cube.prototype.setUniforms = function(renderer) {
@@ -303,12 +376,15 @@ Cube.intersect = function(origin, ray, cubeMin, cubeMax) {
   return Number.MAX_VALUE;
 };
 
-Sphere = function(center, radius, id){
+Sphere = function(center, radius, id, color, mat){
     this.center = center;
     this.radius = radius;
+    this.color = color==undefined ? Vector.create([0.75,0.75,0.75]):color;
+    this.material = mat==undefined ? material : mat;
     this.centerVar = 'sCenter'+id;
     this.radiusVar = 'sRadius'+id;
     this.intersectVar = 'tSphere' + id;
+    this.temporaryTranslation = Vector.create([0, 0, 0]);
 }
 Sphere.prototype = {
     //uniform vec3 sphereCenter0; 
@@ -334,15 +410,41 @@ Sphere.prototype = {
         ' if(' + this.intersectVar + ' < 1.0) return 0.0;';
     },
     getNormalCalculationCode : function() {
-    return '' +
-    ' else if(t == ' + this.intersectVar + ') normal = normalForSphere(hit, ' + this.centerVar + ', ' + this.radiusVar + ');';
+        return '' +
+        ' else if(t == ' + this.intersectVar + ') {normal = normalForSphere(hit, ' + this.centerVar + ', ' + this.radiusVar + ');'+
+        ' surfaceColor = vec3'+this.color.toString()+';'+
+        '}';
+    },
+    getMinCorner: function() {
+        return this.center.add(this.temporaryTranslation).subtract(Vector.create([this.radius, this.radius, this.radius]));
+    },
+    getMaxCorner: function() {
+      return this.center.add(this.temporaryTranslation).add(Vector.create([this.radius, this.radius, this.radius]));
     },
     setUniforms:function(renderer){
         renderer.uniforms[this.centerVar] = this.center;
         renderer.uniforms[this.radiusVar] = this.radius;
+    },
+    intersect: function(origin, ray){
+        return Sphere.intersect(origin, ray, this.center.add(this.temporaryTranslation), this.radius);
     }
-
 }
+
+Sphere.intersect = function(origin, ray, center, radius) {
+  var toSphere = origin.subtract(center);
+  var a = ray.dot(ray);
+  var b = 2*toSphere.dot(ray);
+  var c = toSphere.dot(toSphere) - radius*radius;
+  var discriminant = b*b - 4*a*c;
+  if(discriminant > 0) {
+    var t = (-b - Math.sqrt(discriminant)) / (2*a);
+    if(t > 0) {
+      return t;
+    }
+  }
+  return Number.MAX_VALUE;
+};
+
 //----Light class
 Light = function(){
     this.temporaryTranslation = Vector.create([0, 0, 0]);
@@ -371,11 +473,13 @@ Light.prototype = {
 //----geometry construction functions
 function makeSphereColumn(){
     var objects = [];
-    objects.push(new Sphere(Vector.create([0, 0.70, 0]), 0.15, nextObjectId++));
-    objects.push(new Sphere(Vector.create([0, 0.25, 0]), 0.30, nextObjectId++));
-    objects.push(new Sphere(Vector.create([0, -0.35, 0]), 0.30, nextObjectId++));
-    objects.push(new Sphere(Vector.create([0, -0.75, 0]), 0.40, nextObjectId++));
-    objects.push(new Cube( Vector.create([0.5, -0.75, -0.5]), Vector.create([0.9, -0.7, 0.5]) , nextObjectId++)); 
+    objects.push(new Sphere(Vector.create([-0.7, 0.75, 0]), 0.2, nextObjectId++));
+
+//    objects.push(new Sphere(Vector.create([-0.70, 0.25, 0]), 0.22, nextObjectId++, Vector.create([1.0, 1.0, 0.0])));
+    objects.push(new Sphere(Vector.create([-0.70, 0.25, 0]), 0.40, nextObjectId++));
+//    objects.push(new Sphere(Vector.create([-0.70, -0.35, 0]), 0.30, nextObjectId++));
+    objects.push(new Sphere(Vector.create([-0.70, -0.85, 0]), 0.30, nextObjectId++, Vector.create([0.5, 0.0, 0.5])));
+    objects.push(new Cube( Vector.create([0.5, -0.75, -0.5]), Vector.create([0.9, 0.7, 0.5]) , nextObjectId++)); 
     return objects;
 }
 
@@ -474,6 +578,7 @@ function makeCalculateColor(objects){
 
     // main raytracing loop
 '   for(int bounce = 0; bounce < 5; bounce++) {' +
+'       vec3 toLight;'+
       // compute the intersection with everything
 '     vec2 tRoom = intersectCube(origin, ray, roomCubeMin, roomCubeMax);' +
       concat(objects, function(o){ return o.getIntersectCode(); }) +
@@ -488,7 +593,7 @@ function makeCalculateColor(objects){
 '     vec3 surfaceColor = vec3(0.75);' +
 '     float specularHighlight = 0.0;' +
 '     vec3 normal;' +
-
+'       toLight = light - hit;'+
       // calculate the normal (and change wall color)
 '     if(t == tRoom.y) {' +
 '       normal = -normalForCube(hit, roomCubeMin, roomCubeMax);' +
@@ -504,7 +609,6 @@ function makeCalculateColor(objects){
 '     }' +
 
       // compute diffuse lighting contribution
-'     vec3 toLight = light - hit;' +
 '     float diffuse = max(0.0, dot(normalize(toLight), normal));' +
 
       // trace a shadow ray to the light
@@ -563,11 +667,12 @@ var functionCode =
 ' float intersectSphere(vec3 origin, vec3 ray, vec3 sCenter, float sRadius) {   '+ 
 '     vec3 toSphere = origin - sCenter; '+ 
 '     float a = dot(ray, ray); '+ 
-'    float b = 2.0 * dot(toSphere, ray); '+ 
-'     float c = dot(toSphere, toSphere) - sRadius*sRadius; '+ 
+'     float b = 2.0 * dot(toSphere, ray); '+ 
+'     float c = dot(toSphere, toSphere) - sRadius*sRadius; '+  
 '     float discriminant = b*b - 4.0*a*c; '+ 
 '     if(discriminant > 0.0) {     float t = (-b - sqrt(discriminant)) / (2.0 * a); '+ 
- '     if(t > 0.0) return t; '+ 
+'     if(t > 0.00001) return t; '+ 
+'     else if(t > -0.00001) {return (-b + sqrt(discriminant)) / (2.0 * a);}'+
 '     } '+ 
 '     return 10000.0; '+ 
 '  } '+ 
@@ -610,7 +715,8 @@ var specularReflection =
 ' specularHighlight = max(0.0, dot(reflectedLight, normalize(hit - origin)));';
 
 var newDiffuseRay =
-' ray = cosineWeightedDirection(timeSinceStart + float(bounce), normal);';
+' ray = cosineWeightedDirection(timeSinceStart + float(bounce), normal);'+
+' ';
 
 // update ray using normal according to a specular reflection
 var newReflectiveRay =
@@ -624,18 +730,15 @@ var newGlossyRay =
 ' specularHighlight = pow(specularHighlight, 3.0);';
 
 var newRefractiveRay = 
-' float ratio = 0.6;'+
-' ray = normalize(ray);'+
+' float ratio = 1.0;'+
 ' if(dot(ray,normal)>0.0){'+
 ' ratio = 1.0/ratio;'+
 ' normal = -normal;'+
-' ray = refract(ray, normal, ratio);}'+
+' ray = normalize(refract(ray, normal, ratio));}'+
 ' else'+
-' ray = refract(ray, normal, ratio);'+
-' vec3 refractedLight = normalize(refract(normalize(light - hit), normal, ratio));' +
-' specularHighlight = max(0.0, dot(refractedLight, normalize(hit - origin)));'+
-' specularHighlight = 1.0 * pow(specularHighlight, 10.0);';
-
+' ray = normalize(refract(ray, normal, ratio));'+
+  specularReflection +
+' specularHighlight = 2.0 * pow(specularHighlight, 20.0);' ;
 
 //zyy
 var renderVertexSource =
@@ -736,7 +839,9 @@ Vector.prototype.ensure3 = function() {
 Vector.prototype.ensure4 = function(w) {
   return Vector.create([this.elements[0], this.elements[1], this.elements[2], w]);
 };
-
+Vector.prototype.toString = function(){
+    return '('+this.elements.join(', ')+')';
+}
 Vector.prototype.divideByW = function() {
   var w = this.elements[this.elements.length - 1];
   var newElements = [];
@@ -745,7 +850,55 @@ Vector.prototype.divideByW = function() {
   }
   return Vector.create(newElements);
 };
+Vector.prototype.componentDivide = function(vector) {
+  if(this.elements.length != vector.elements.length) {
+    return null;
+  }
+  var newElements = [];
+  for(var i = 0; i < this.elements.length; i++) {
+    newElements.push(this.elements[i] / vector.elements[i]);
+  }
+  return Vector.create(newElements);
+};
 
+
+Vector.min = function(a, b) {
+  if(a.length != b.length) {
+    return null;
+  }
+  var newElements = [];
+  for(var i = 0; i < a.elements.length; i++) {
+    newElements.push(Math.min(a.elements[i], b.elements[i]));
+  }
+  return Vector.create(newElements);
+};
+
+Vector.max = function(a, b) {
+  if(a.length != b.length) {
+    return null;
+  }
+  var newElements = [];
+  for(var i = 0; i < a.elements.length; i++) {
+    newElements.push(Math.max(a.elements[i], b.elements[i]));
+  }
+  return Vector.create(newElements);
+};
+
+Vector.prototype.minComponent = function() {
+  var value = Number.MAX_VALUE;
+  for(var i = 0; i < this.elements.length; i++) {
+    value = Math.min(value, this.elements[i]);
+  }
+  return value;
+};
+
+Vector.prototype.maxComponent = function() {
+  var value = -Number.MAX_VALUE;
+  for(var i = 0; i < this.elements.length; i++) {
+    value = Math.max(value, this.elements[i]);
+  }
+  return value;
+};
 Matrix.Translation = function (v)
 {
   if (v.elements.length == 2) {
@@ -777,4 +930,45 @@ Matrix.prototype.flatten = function ()
         for (var i = 0; i < this.elements.length; i++)
             result.push(this.elements[i][j]);
     return result;
+}
+
+
+function canvasMousePos(event) {
+  var mousePos = eventPos(event);
+  var canvasPos = elementPos(canvas);
+  return {
+    x: mousePos.x - canvasPos.x,
+    y: mousePos.y - canvasPos.y
+  };
+}
+
+function eventPos(event) {
+  return {
+    x: event.clientX + document.body.scrollLeft + document.documentElement.scrollLeft,
+    y: event.clientY + document.body.scrollTop + document.documentElement.scrollTop
+  };
+}
+
+function elementPos(element) {
+  var x = 0, y = 0;
+  while(element.offsetParent) {
+    x += element.offsetLeft;
+    y += element.offsetTop;
+    element = element.offsetParent;
+  }
+  return { x: x, y: y };
+}
+
+function showProperty(x,y){
+    document.getElementById('popup').style.display = "block";
+    document.getElementById('popup').style.left = ''+x+'px';
+    document.getElementById('popup').style.top = ''+y+'px';
+}
+
+function hideProperty(){
+    document.getElementById('popup').style.display = "none";
+}
+
+function setProperty(){
+
 }
