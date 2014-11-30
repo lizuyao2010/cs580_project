@@ -1,0 +1,49 @@
+<html>
+    <head>
+    <meta charset="UTF-8">
+    <style type="text/css">
+        canvas {background: #5C4033;}
+        #popup{
+            background-color: rgba(0,128,128,0.8);
+            width:100px;
+            position: absolute;
+            top:10px;
+            left:520px;
+            display: none;
+        }
+    </style>
+    <script type="text/javascript" src = "sylvester.src.js"></script>
+    <script type="text/javascript" src = "webgl-utils.js"></script>
+    </head>
+    <body>
+        <div>
+        <canvas id="canvas" width="512" height="512"></canvas>
+
+        <table id = 'popup'>
+            <tbody>
+                <tr><td> Material:</td> 
+                    <td><select id = 'material'>
+                          <option value="0">Diffuse</option>
+                          <option value="1">Mirror</option>
+                          <option value="2">Glossy</option>
+                          <option value="3">Glass</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr><td id='materialMore'>Glossiness</td>
+                <td><input type="range" id="materialAdjust" min="0" max="100" value="60"></td>
+                </tr>
+                <tr><td>Color: </td>
+                <td><input type = 'text' size = '10' id = 'rgb' name='rgb'/></td>
+                </tr>
+                <tr><td><button type="button" id = 'set'/>OK</td></tr>
+            </tbody>
+        </table>  
+        </div>      
+        <br>
+        Use the cursor keys or WASD to control the x,y direction of the camera, and use page up and down to control the z direction of the camera.
+        <script type="text/javascript" src="jquery-1.11.1.min.js"></script>
+        <script type="text/javascript" src="jquery-ui.min.js"></script>
+        <script type="text/javascript" src="main2.js"></script>      
+    </body>
+</html>
