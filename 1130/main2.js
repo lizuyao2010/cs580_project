@@ -3,7 +3,9 @@ var canvas;
 var glossiness = 0.6;
 var bounce  = 5;
 var ks = 2;
-//camera
+var raysCount = 1;
+var ratio = 0.8;
+//camera1
 var viewX=-2.5;
 var viewY=2.5;
 var viewZ=2.5;
@@ -13,8 +15,8 @@ var blueColor = Vector.create([0, 0, 1]);
 var greenColor = Vector.create([0,1,0]);
 var whiteColor = Vector.create([1,1,1]);
 var yellowColor = Vector.create([1,1,0]);
-var light0 = Vector.create([-1.50, 0.0, -0.5]);
-//var light0 = Vector.create([0.9, 0.5, -0.6]);
+//var light0 = Vector.create([-1.50, 0.0, -0.5]);
+var light0 = Vector.create([1.0, 1.0, 1.0]);
 var light1 = Vector.create([0.5,0.5,2.5]);
 var light2 = Vector.create([-0.7,0.7,0.7]);
 var light3 = Vector.create([-0.7, 0.7,-0.7]);
@@ -25,7 +27,7 @@ lights.push(new RealLight(light1,whiteColor));
 //lights.push(new RealLight(light2,lightColor2));
 //lights.push(new RealLight(light3,lightColor3));
 var nextObjectId = 0;
-
+var tranlationMatrix ;  
 var MATERIAL_DIFFUSE = 0;
 var MATERIAL_MIRROR = 1;
 var MATERIAL_GLOSSY = 2;
@@ -99,7 +101,7 @@ document.onmousedown = function(event) {
 document.onmousemove = function(event) {
   var mouse = canvasMousePos(event);
 
-  if(mouseDown) {
+ /* if(mouseDown) {
     // update the angles based on how far we moved since last time
     angleY -= (mouse.x - oldX) * 0.01;
     angleX += (mouse.y - oldY) * 0.01;
@@ -114,10 +116,10 @@ document.onmousemove = function(event) {
     // remember this coordinate
     oldX = mouse.x;
     oldY = mouse.y;
-  } else {
+  } else { */
     var canvasPos = elementPos(canvas);
     ui.mouseMove(mouse.x, mouse.y);
-  }
+  //}
 };
 
 document.onmouseup = function(event) {
@@ -340,7 +342,11 @@ Render.prototype = {
         var rgb = selRGB.split(',');
         this.selectedObject.color = Vector.create([parseFloat(rgb[0]),parseFloat(rgb[1]),parseFloat(rgb[2])]);
         this.tempColor = this.selectedObject.color;
-        glossiness = selMatMore/100.0;
+        if(selMaterial==3){
+            ratio = selMatMore/10.0;
+        }
+        else 
+            glossiness = selMatMore/100.0;
         if(this.selectedObject instanceof Sphere){
 
             this.selectedObject.radius = Math.min(2.5, this.selectedObject.radius * parseFloat(selScale));
@@ -656,6 +662,259 @@ Sphere.intersect = function(origin, ray, center, radius) {
   }
   return Number.MAX_VALUE;
 };
+
+
+
+// testing Cylinder 
+
+
+Cylinder = function(center, radius, zmin ,zmax, id, color, material){
+    this.center = center;
+    this.radius = radius;
+    this.centerVar = 'sCenter'+id;
+    this.radiusVar = 'sRadius'+id;
+    this.intersectVar = 'tCylinder' + id;
+    this.material = material;
+    this.color = color;
+    this.temporaryTranslation = Vector.create([0, 0, 0]);    
+    this.zmin = zmin;
+    this.zmax = zmax;
+}
+
+
+Cylinder.prototype = {
+    //uniform vec3 sphereCenter0; 
+    //uniform float sphereRadius0; 
+    getVariableSetupCode: function(){
+        return '' +
+        ' uniform vec3 ' + this.centerVar + ';' +
+        ' uniform float ' + this.radiusVar + ';';
+    },
+    //float tSphere0 = intersectSphere(origin, ray, sphereCenter0, sphereRadius0); 
+    getIntersectCode:function(){
+        return '' +
+        ' float ' + this.intersectVar + ' = intersectCylinder(origin, ray, ' + this.centerVar + ', ' + this.radiusVar + ', '+ this.zmin + ', '+ this.zmax+ ');';
+    },
+    //if(tSphere0 < t) t = tSphere0; 
+    getMinimumIntersectCode:function(){
+        return '' +
+        ' if(' + this.intersectVar + ' < t) t = ' + this.intersectVar + ';';
+    },
+    getShadowCode:function(){
+        return '' +
+        this.getIntersectCode() +
+        ' if(' + this.intersectVar + ' < 1.0) return 0.0;';
+    },
+    getNormalCalculationCode : function() {
+    return '' +
+    ' else if(t == ' + this.intersectVar + ') normal = normalForCylinder(hit, ' + this.centerVar + ', ' + this.radiusVar + ');';
+    },
+    setUniforms:function(renderer){
+        renderer.uniforms[this.centerVar] = this.center.add(this.temporaryTranslation);
+        renderer.uniforms[this.radiusVar] = this.radius;
+    },
+
+    intersect: function(origin, ray){
+        return Cylinder.intersect(origin, ray, this.center.add(this.temporaryTranslation), this.radius, this.zmin, this.zmax);
+    },
+    getMinCorner: function() {
+        var minxy= this.center.add(this.temporaryTranslation).subtract(Vector.create([this.radius, this.radius, this.radius]));
+        return Vector.create([minxy.x, minxy.y, zmin]);
+    },
+    getMaxCorner: function() {
+        var maxxy = this.center.add(this.temporaryTranslation).add(Vector.create([this.radius, this.radius, this.radius]));
+        return Vector.create([maxxy.x, maxxy.y, zmax]);
+    }
+
+}
+Cylinder.prototype.temporaryTranslate = function(translation) {
+  this.temporaryTranslation = translation;
+};
+
+Cylinder.prototype.translate = function(translation) {
+  this.center = this.center.add(translation);
+};
+Cylinder.intersect = function(origin, ray, center, sRadius, zmin, zmax) {
+  var toSphere = origin.subtract(center);
+  var a = ray.x * ray.x  + ray.y * ray.y ;
+  var b = 2.0 * ((toSphere.x* ray.x) +(toSphere.y * ray.y) ); 
+  var c = ((toSphere.x * toSphere.x )+ (toSphere.y * toSphere.y )) - sRadius*sRadius;
+  var discriminant = b*b - 4*a*c;
+  if(discriminant > 0) {
+    var t = (-b - Math.sqrt(discriminant)) / (2*a);
+ /*   var tcap = (zmin - toSphere.z) / ray.z ;
+    var z = toSphere.z + t * ray.z;
+    if( zmin < z && z < zmax && t > 0) {
+      return t;
+    }
+    */
+    if(t > 0){
+        var hit = origin + ray.multiply(t);
+        if(hit.z < zmax && hit.z >zmin)
+            return t;
+    }
+  }
+  return Number.MAX_VALUE;
+};
+
+// end testing cilinder 
+
+
+// testing cone shape 
+
+
+
+Cone = function(center, radius, zmin ,zmax, id , color, material){
+    this.center = center;
+    this.radius = radius;
+    this.centerVar = 'sCenter'+id;
+    this.radiusVar = 'sRadius'+id;
+    this.intersectVar = 'tCone' + id; 
+    
+    this.zmin = zmin;
+    this.zmax = zmax;
+
+    this.material = material;
+    this.color = color;
+    this.temporaryTranslation = Vector.create([0, 0, 0]);    
+}
+
+
+Cone.prototype = {
+    //uniform vec3 sphereCenter0; 
+    //uniform float sphereRadius0; 
+    getVariableSetupCode: function(){
+        return '' +
+        ' uniform vec3 ' + this.centerVar + ';' +
+        ' uniform float ' + this.radiusVar + ';';
+    },
+    //float tSphere0 = intersectSphere(origin, ray, sphereCenter0, sphereRadius0); 
+    getIntersectCode:function(){
+        return '' +
+        ' float ' + this.intersectVar + ' = intersectCone(origin, ray, ' + this.centerVar + ', ' + this.radiusVar + ', '+ this.zmin + ', '+ this.zmax+ ');';
+    },
+    //if(tSphere0 < t) t = tSphere0; 
+    getMinimumIntersectCode:function(){
+        return '' +
+        ' if(' + this.intersectVar + ' < t) t = ' + this.intersectVar + ';';
+    },
+    getShadowCode:function(){
+        return '' +
+        this.getIntersectCode() +
+        ' if(' + this.intersectVar + ' < 1.0) return 0.0;';
+    },
+    getNormalCalculationCode : function() {
+    return '' +
+    ' else if(t == ' + this.intersectVar + ') normal = normalForCone(hit, ' + this.centerVar + ', ' + this.radiusVar + ');';
+    },
+    setUniforms:function(renderer){
+        renderer.uniforms[this.centerVar] = this.center.add(this.temporaryTranslation);
+        renderer.uniforms[this.radiusVar] = this.radius;
+    },
+
+    intersect: function(origin, ray){
+        return Cone.intersect(origin, ray, this.center.add(this.temporaryTranslation), this.radius, this.zmin, this.zmax);
+    },
+    getMinCorner: function() {
+        var minxy= this.center.add(this.temporaryTranslation).subtract(Vector.create([this.radius, this.radius, this.radius]));
+        return Vector.create([minxy.x, minxy.y, zmin]);
+    },
+    getMaxCorner: function() {
+        var maxxy = this.center.add(this.temporaryTranslation).add(Vector.create([this.radius, this.radius, this.radius]));
+        return Vector.create([maxxy.x, maxxy.y, zmax]);
+    }
+
+}
+Cone.prototype.temporaryTranslate = function(translation) {
+  this.temporaryTranslation = translation;
+};
+
+Cone.prototype.translate = function(translation) {
+  this.center = this.center.add(translation);
+};
+
+Cone.intersect = function(origin, ray, center, sRadius, zmin, zmax) {
+  var toSphere = origin.subtract(center);
+  var a = ray.x * ray.x  + ray.y * ray.y - sRadius*sRadius * ray.z * ray.z;
+  var b = 2.0 * ((toSphere.x* ray.x) +(toSphere.y * ray.y) - (sRadius*sRadius) * ray.z * toSphere.z); 
+  var c = ((toSphere.x * toSphere.x )+ (toSphere.y * toSphere.y )) - (sRadius*sRadius  * toSphere.z * toSphere.z);
+  var discriminant = b*b - 4*a*c;
+  if(discriminant > 0) {
+    var t = (-b - Math.sqrt(discriminant)) / (2*a);
+    var tcap = (zmin - toSphere.z) / ray.z ;
+    var z = toSphere.z + t * ray.z;
+    if( zmin < z && z < zmax && t > 0) {
+      return t;
+    }
+    
+    
+  }
+  return Number.MAX_VALUE;
+};
+
+
+
+// end testing cone shape 
+
+
+
+
+
+// testing plane shape  
+
+
+
+Plane = function(center, radius, zmin ,zmax, id){
+    this.center = center;
+    this.radius = radius;
+    this.centerVar = 'sCenter'+id;
+    this.intersectVar = 'tPlane' + id;
+
+ 
+    
+    this.zmin = zmin;
+    this.zmax = zmax;
+}
+
+
+Plane.prototype = {
+    //uniform vec3 sphereCenter0; 
+    //uniform float sphereRadius0; 
+    getVariableSetupCode: function(){
+        return '' +
+        ' uniform vec3 ' + this.centerVar + ';' +
+        ' uniform float ' + this.radiusVar + ';';
+    },
+    //float tSphere0 = intersectSphere(origin, ray, sphereCenter0, sphereRadius0); 
+    getIntersectCode:function(){
+        return '' +
+        ' float ' + this.intersectVar + ' = intersectPlane(origin, ray, ' + this.centerVar + ', ' + this.radiusVar + ', '+ this.zmin + ', '+ this.zmax+ ');';
+    },
+    //if(tSphere0 < t) t = tSphere0; 
+    getMinimumIntersectCode:function(){
+        return '' +
+        ' if(' + this.intersectVar + ' < t) t = ' + this.intersectVar + ';';
+    },
+    getShadowCode:function(){
+        return '' +
+        this.getIntersectCode() +
+        ' if(' + this.intersectVar + ' < 1.0) return 0.0;';
+    },
+    getNormalCalculationCode : function() {
+    return '' +
+    ' else if(t == ' + this.intersectVar + ') normal = normalForPlane(hit, ' + this.centerVar + ', ' + this.radiusVar + ');';
+    // ' else if(t == ' + this.intersectVar + ') normal = normalForPlane(ray, ' + this.centerVar + ', ' + this.radiusVar + ');';
+
+    },
+    setUniforms:function(renderer){
+        renderer.uniforms[this.centerVar] = this.center;
+        renderer.uniforms[this.radiusVar] = this.radius;
+    }
+
+}
+// end testing plane shape 
+
+
 function RealLight(direction,lightColor){
     this.color=lightColor;
     this.direction=direction;
@@ -714,19 +973,14 @@ Light.clampPosition = function(position) {
 //----geometry construction functions
 function makeSphereColumn(){
     var objects = [];
-    objects.push(new Sphere(Vector.create([-1.50, 0.0, -0.5]), 0.45, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1));
-//    objects.push(new Sphere(Vector.create([0, 0.25, 0]), 0.30, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),0));
-//    objects.push(new Sphere(Vector.create([0, -0.35, 0]), 0.30, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),2));
-    objects.push(new Sphere(Vector.create([-2.7, -0.75, 0]), 0.40, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1));
-    objects.push(new Cube( Vector.create([-1.5, -1.75, -0.5]), Vector.create([-0.1, -1.2, 0.5]) , nextObjectId++,Vector.create([0.75, 0.75, 0.75]),3)); 
-    //objects.push(new Cube( Vector.create([-0.5, -0.5, -0.5]), Vector.create([0.5,0.5, 0.5]) , nextObjectId++,1)); 
-    
-    //objects.push(new Cube( Vector.create([-0.99, -0.99, -0.99]), Vector.create([0.99,0.99, 0.99]) , nextObjectId++,1)); 
-    //objects.push(new Cube( Vector.create([3, -2.95, 3]), Vector.create([-3, -2.96, -3]) , nextObjectId++,1)); 
-//    objects.push(new Cube( Vector.create([-3, -3, -2.99]), Vector.create([3, 3, -3]) , nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1)); 
+ //   objects.push(new Sphere(Vector.create([0.0,0.0,0.0]), 0.45, nextObjectId++,Vector.create([1.0,1.0,1.0]),3));
+     objects.push(new Sphere(Vector.create([-2.7, -0.75, 0]), 0.40, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),3));
+ //   objects.push(new Cube( Vector.create([-1.5, -1.75, -0.5]), Vector.create([-0.1, -1.2, 0.5]) , nextObjectId++,Vector.create([0.75, 0.75, 0.75]),3)); 
+ //objects.push(new Cone( Vector.create([0.5, -0.75, -0.9 ]), 0.6 , -0.00001, 0.5  , nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1)); 
+ objects.push(new Cylinder(Vector.create([0.7, 0.5, .6]), 0.06  , -0.5, 0.5 , nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1)); 
+ //    objects.push(new Cube( Vector.create([-3, -3, -2.99]), Vector.create([3, 3, -3]) , nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1)); 
     //objects.push(new Cube( Vector.create([3, -3, 3]), Vector.create([2.99, 3, -3]) , nextObjectId++,1)); 
     //objects.push(new Cube( Vector.create([-3, -3, -3]), Vector.create([-2.99, 3, 3]) , nextObjectId++,1)); 
-    
     
     return objects;
 }
@@ -761,6 +1015,204 @@ function makeCube(){
     objects.push(new Sphere(Vector.create([0, 0, 0]),Math.sqrt(0.65), nextObjectId++,Vector.create([1, 1,1]),1));
     return objects;
 }
+
+
+//by Abdullah
+function makeCubeSphereScene(){
+
+
+var p1 = Vector.create([0.5, 0.75, -0.5]);
+var p2 = Vector.create([0.9, 0.8, 0.5]); 
+
+
+tranlationMatrix = rotateBy(0,"x");
+objects.push(new Cube( transPoint(tranlationMatrix, p1) , transPoint(tranlationMatrix, p2) , nextObjectId++)); 
+
+tranlationMatrix = rotateBy(90,"x");
+objects.push(new Cube( transPoint(tranlationMatrix, p1) , transPoint(tranlationMatrix, p2) , nextObjectId++)); 
+
+
+tranlationMatrix = rotateBy(270,"x");
+objects.push(new Cube( transPoint(tranlationMatrix, p1) , transPoint(tranlationMatrix, p2) , nextObjectId++)); 
+
+
+tranlationMatrix = rotateBy(180,"x");
+objects.push(new Cube( transPoint(tranlationMatrix, p1) , transPoint(tranlationMatrix, p2) , nextObjectId++)); 
+
+//////
+
+
+tranlationMatrix = rotateBy(0,"y");
+objects.push(new Cube( transPoint(tranlationMatrix, p1) , transPoint(tranlationMatrix, p2) , nextObjectId++)); 
+
+tranlationMatrix = rotateBy(90,"y");
+objects.push(new Cube( transPoint(tranlationMatrix, p1) , transPoint(tranlationMatrix, p2) , nextObjectId++)); 
+
+
+tranlationMatrix = rotateBy(270,"y");
+objects.push(new Cube( transPoint(tranlationMatrix, p1) , transPoint(tranlationMatrix, p2) , nextObjectId++)); 
+
+
+tranlationMatrix = rotateBy(180,"y");
+objects.push(new Cube( transPoint(tranlationMatrix, p1) , transPoint(tranlationMatrix, p2) , nextObjectId++)); 
+
+var p11 = transPoint(tranlationMatrix, p1) ;
+var p22 = transPoint(tranlationMatrix, p2) ;
+
+
+
+// tranlationMatrix = rotateBy(0,"x");
+objects.push(new Cube( transPoint(tranlationMatrix, p11) , transPoint(tranlationMatrix, p22) , nextObjectId++)); 
+
+tranlationMatrix = rotateBy(90,"x");
+objects.push(new Cube( transPoint(tranlationMatrix, p11) , transPoint(tranlationMatrix, p22) , nextObjectId++)); 
+
+
+tranlationMatrix = rotateBy(270,"x");
+objects.push(new Cube( transPoint(tranlationMatrix, p11) , transPoint(tranlationMatrix, p22) , nextObjectId++)); 
+
+
+tranlationMatrix = rotateBy(180,"x");
+objects.push(new Cube( transPoint(tranlationMatrix, p11) , transPoint(tranlationMatrix, p22) , nextObjectId++)); 
+
+
+//////
+tranlationMatrix = rotateBy(180,"x");
+
+var p11 = transPoint(tranlationMatrix, p1) ;
+var p22 = transPoint(tranlationMatrix, p2) ;
+
+
+
+tranlationMatrix = rotateBy(90,"y");
+objects.push(new Cube( transPoint(tranlationMatrix, p11) , transPoint(tranlationMatrix, p22) , nextObjectId++)); 
+
+
+tranlationMatrix = rotateBy(270,"y");
+objects.push(new Cube( transPoint(tranlationMatrix, p11) , transPoint(tranlationMatrix, p22) , nextObjectId++)); 
+
+
+tranlationMatrix = rotateBy(180,"y");
+objects.push(new Cube( transPoint(tranlationMatrix, p11) , transPoint(tranlationMatrix, p22) , nextObjectId++)); 
+
+// sphere in the middle 
+
+  objects.push(new Sphere(Vector.create([0, 0.2 / 2, 0]), 0.40, nextObjectId++));
+
+tranlationMatrix = rotateBy(0,"z");
+
+  return objects;
+
+}
+
+function rotateBy(theta, axis){
+    
+    theta = theta * Math.PI / 180;
+    
+        
+    var tranlationMatrix ; 
+        
+    switch (axis){
+        case "x":
+        
+        console.log("x axis,  "+ theta +" angle");
+        
+        tranlationMatrix =
+        
+             
+                     Matrix.create([[1, 0, 0, 0],   // by x 
+                                                                      [0,Math.cos(theta),- Math.sin(theta), 0],
+                                                                      [0,Math.sin(theta), Math.cos(theta), 0],
+                                                                      [0, 0, 0, 1]]);
+                
+        
+        break;
+        
+        case "y":
+        
+        console.log("y axis,  "+ theta +" angle");
+        
+        tranlationMatrix =
+
+         Matrix.create([[Math.cos(theta), 0, Math.sin(theta), 0],   // by y 
+                        [0,1,0, 0],
+                        [-Math.sin(theta), 0, Math.cos(theta), 0],
+                        [0, 0, 0, 1]]);
+
+        
+        break;
+        
+        case "z":
+        
+        console.log("z axis,  "+ theta +" angle");
+        tranlationMatrix =
+        
+             
+                     Matrix.create([[1, 0, 0, 0],   // by x 
+                                                                      [0,Math.cos(theta),- Math.sin(theta), 0],
+                                                                      [0,Math.sin(theta), Math.cos(theta), 0],
+                                                                      [0, 0, 0, 1]]);
+                
+        
+        break;
+        
+        
+        case "xy":
+        
+        console.log("xy axis,  "+ theta +" angle");
+        
+        tranlationMatrix = rotateBy(theta,"x").multiply(rotateBy(theta,"y"));
+        
+             
+                     
+                
+        
+        break;
+        
+        
+        
+        default:
+
+        tranlationMatrix =
+
+         Matrix.create([[Math.cos(theta), 0, Math.sin(theta), 0],   // by y 
+                        [0,1,0, 0],
+                        [-Math.sin(theta), 0, Math.cos(theta), 0],
+                        [0, 0, 0, 1]]);
+        
+         
+    }
+
+    
+    return tranlationMatrix;
+}
+
+
+function transPoint(matrix , p ){
+
+
+// test identity.. 
+    
+var mp = Matrix.create([p.elements[0], p.elements[1] , p.elements[2],1 ]);   //
+
+// console.log(mp.elements);
+
+var m  = matrix.multiply(mp);
+
+    // console.log(m.elements);
+
+
+var rv = Vector.create([m.elements[0][0] / m.elements[3][0], m.elements[1][0]/ m.elements[3][0], m.elements[2][0]/ m.elements[3][0] ]) ; 
+
+//console.log(rv);
+
+    return  rv;
+}
+//--end //by Abdullah
+
+
+
+
 //------webgl utility functions
 /*
 These two funcitons are used to create webgl program, 
@@ -865,7 +1317,9 @@ function makeCalculateColor(objects){
 '   vec3 calculateColor(vec3 origin, vec3 ray, vec3 light,vec3 lightColor) {' +
 //light color
 '   vec3 accumulatedColor = vec3(0.0);' +
-
+'   vec3 nxtRay;' +
+'   bool hasNxtRay = false;'+
+'   for(int rayCount= 0; rayCount < '+raysCount+'; rayCount++){'+
     // main raytracing loop
 '   for(int bounce = 0; bounce < '+bounce+'; bounce++) {' +
       // compute the intersection with everything
@@ -891,7 +1345,10 @@ function makeCalculateColor(objects){
     'if(hit.x < -2.9999) { float step = 0.3; float y = hit.y/step; float z = hit.z/step; if (y-floor(y)<0.5 && z-floor(z)<0.5) surfaceColor = vec3(1,1,1); if(y-floor(y)<0.5 && z-floor(z)>0.5) surfaceColor = vec3(0,0,0); if (y-floor(y)>0.5 && z-floor(z)<0.5) surfaceColor = vec3(0,0,0); if(y-floor(y)>0.5 && z-floor(z)>0.5) surfaceColor = vec3(1,1,1);}'+
     //'else if(hit.x > 2.9999) { float step = 0.3; float y = hit.y/step; float z = hit.z/step; if (y-floor(y)<0.5 && z-floor(z)<0.5) surfaceColor = vec3(1,1,1); if(y-floor(y)<0.5 && z-floor(z)>0.5) surfaceColor = vec3(0,0,0); if (y-floor(y)>0.5 && z-floor(z)<0.5) surfaceColor = vec3(0,0,0); if(y-floor(y)>0.5 && z-floor(z)>0.5) surfaceColor = vec3(1,1,1);}'+
     background+
-    'else if(hit.y < -2.9999) surfaceColor = vec3(0.80,0.964, 0.725);'+
+    'else if(hit.y < -2.9999 ) surfaceColor = vec3(0.80,0.964, 0.725);'+//floor
+    'else if (hit.y > 2.9999 ) surfaceColor = vec3(1.0,0.964, 0.725);'+ //ceiling
+    'else if (hit.z > 2.9999) surfaceColor = vec3(0.80,0.964, 1.0);'+ //front
+    'else if (hit.z < -2.9999) surfaceColor = vec3(1.0,0.5, 1.0);'+ //back
         newDiffuseRay +
 '     } else if(t == 10000.0) { '+
 '       break;' +
@@ -909,16 +1366,24 @@ function makeCalculateColor(objects){
 '     float shadowIntensity = shadow(hit + normal * 0.001, toLight);' +
 
       // do light bounce
+'     vec3 iterColor = vec3(0.0);'+
 '     lightColor *= surfaceColor;' +
-'     accumulatedColor += lightColor * (0.5 * diffuse * shadowIntensity);' +
-'     accumulatedColor += lightColor * specularHighlight * shadowIntensity;' +
+'     iterColor += lightColor * (0.5 * diffuse * shadowIntensity);' +
+'     iterColor += lightColor * specularHighlight * shadowIntensity;' +
+
+'       accumulatedColor += iterColor;'+
 
       // calculate next origin
 '     origin = hit;' +
+'       }' +
+'       if(hasNxtRay){'+
+'           ray = nxtRay;'+
+'           hasNxtRay = false;}'+
+'       else break;'+
 '   }' +
 
 '   return accumulatedColor;' +
-' }';
+' }' ;
 }
 
 function makeMain() {
@@ -967,14 +1432,14 @@ var functionCode =
 ' vec3 normalForCube(vec3 hit, vec3 cubeMin, vec3 cubeMax) {   '+ 
 '     if(hit.x < cubeMin.x + 0.0001) return vec3(-1.0, 0.0, 0.0); '+ 
 '     else if(hit.x > cubeMax.x - 0.0001) return vec3(1.0, 0.0, 0.0); '+ 
-'     else if(hit.y < cubeMin.y + 0.0001) return vec3(0.0, -1.0, 0.0);'+  
+'     else if(hit.y < cubeMin.y + 0.0001) return vec3(0.0, -1.0, 0.0); '+  
 '     else if(hit.y > cubeMax.y - 0.0001) return vec3(0.0, 1.0, 0.0); '+ 
 '     else if(hit.z < cubeMin.z + 0.0001) return vec3(0.0, 0.0, -1.0);'+  
 '     else return vec3(0.0, 0.0, 1.0); '+ 
 '  } '+ 
 ' float intersectSphere(vec3 origin, vec3 ray, vec3 sCenter, float sRadius) {   '+ 
 '     vec3 toSphere = origin - sCenter; '+ 
-'     float a = dot(ray, ray); '+ 
+'    float a = dot(ray, ray); '+ 
 '    float b = 2.0 * dot(toSphere, ray); '+ 
 '     float c = dot(toSphere, toSphere) - sRadius*sRadius; '+ 
 '     float discriminant = b*b - 4.0*a*c; '+ 
@@ -986,7 +1451,86 @@ var functionCode =
 '  } '+ 
 '  vec3 normalForSphere(vec3 hit, vec3 sCenter, float sRadius) {   '+ 
 '     return (hit - sCenter) / sRadius; '+ 
-'  } '+ 
+'  } '+
+' float intersectCylinder(vec3 origin, vec3 ray, vec3 sCenter, float sRadius,float zmin, float zmax) {   '+ 
+
+'     vec3 toSphere = origin - sCenter; '+  
+
+'     float a = ( (ray.x * ray.x ) + (ray.y * ray.y ) ); '+ 
+'     float b = 2.0 * ((toSphere.x* ray.x) +(toSphere.y * ray.y) ); '+ 
+'     float c = ((toSphere.x * toSphere.x )+ (toSphere.y * toSphere.y )) - sRadius*sRadius; '+ 
+'     float discriminant = b*b - 4.0*a*c; '+ 
+
+'     if(discriminant > 0.0) {     float t = (-b - sqrt(discriminant)) / (2.0 * a); '+ 
+'        float tcap = (zmin - toSphere.z) / ray.z ; '+
+'       float z = toSphere.z + t * ray.z;'+
+'       if( zmin < z && z < zmax){ '+
+ '       if(t > 0.0 ) return t; '+ 
+ // '       if(t > 0.0  && tcap > 0.0) {if(t<tcap)return t; else return tcap;} '+ 
+
+ //'       if(tcap > 0.0 ) return t; '+ 
+
+'        } '+
+'     } '+ 
+'     return 10000.0; '+ 
+
+'  } '+
+' float intersectCone(vec3 origin, vec3 ray, vec3 sCenter, float sRadius,float zmin, float zmax) {   '+ 
+'     vec3 toSphere = origin - sCenter; '+  
+
+'     float a = ( (ray.x * ray.x ) + (ray.y * ray.y ) - (sRadius*sRadius) * ray.z * ray.z); '+ 
+'     float b = 2.0 * ((toSphere.x* ray.x) +(toSphere.y * ray.y)  - (sRadius*sRadius) * ray.z * toSphere.z ); '+ 
+'     float c = ((toSphere.x * toSphere.x )+ (toSphere.y * toSphere.y )) - (sRadius*sRadius  * toSphere.z * toSphere.z); '+ 
+'     float discriminant = b*b - 4.0*a*c; '+ 
+
+'     if(discriminant > 0.0) {     float t = (-b - sqrt(discriminant)) / (2.0 * a); '+ 
+'        float tcap = (zmin - toSphere.z) / ray.z ; '+
+'       float z = toSphere.z + t * ray.z;'+
+'       if( zmin < z && z < zmax){ '+
+ '       if(t > 0.0 ) return t; '+ 
+ // '       if(t > 0.0  && tcap > 0.0) {if(t<tcap)return t; else return tcap;} '+ 
+
+ //'       if(tcap > 0.0 ) return t; '+ 
+
+'        } '+
+'     } '+ 
+'     return 10000.0; '+ 
+
+'  } '+
+' float intersectPlane(vec3 origin, vec3 ray, vec3 sCenter, float sRadius,float zmin, float zmax) {   '+ 
+'     vec3 toSphere = origin - sCenter; '+  
+
+// '        float t = - origin.z / ray.z ; '+
+'        float t = toSphere.z / ray.z ; '+
+
+// '        float t = origin.y / ray.y ; '+
+
+ '       if(t >0.0 ) return t; '+ 
+
+'     return 10000.0; '+ 
+
+'  } '+
+'  vec3 normalForPlane(vec3 ray, vec3 sCenter, float sRadius) {   '+ 
+'     vec3 v ;   '+
+'     v.z = - sin(ray.z); '+ 
+'     v.x = 0.0; '+ 
+'     v.y = 0.0; '+ 
+// '     v.z = 1.0  ;' +
+'     return v; '+ 
+'  } '+
+'  vec3 normalForCone(vec3 hit, vec3 sCenter, float sRadius) {   '+ 
+' vec3 v = (hit - sCenter) / sRadius;   '+
+'     v.z = - v.z * tan(sRadius * sRadius); '+ 
+
+'     return v; '+ 
+'  } '+
+'  vec3 normalForCylinder(vec3 hit, vec3 sCenter, float sRadius) {   '+ 
+' vec3 v = (hit - sCenter) / sRadius;   '+
+'     v.z = 0.0; '+ 
+
+'     return v; '+ 
+'  } '+
+
 '  float random(vec3 scale, float seed) {   '+ 
 '     return fract(sin(dot(gl_FragCoord.xyz + seed, scale)) * 43758.5453 + seed); '+ 
 '  } '+ 
@@ -1027,7 +1571,7 @@ var newDiffuseRay =
 
 // update ray using normal according to a specular reflection
 var newReflectiveRay =
-' ray = reflect(ray, normal);' +
+' ray = normalize(reflect(ray, normal));' +
   specularReflection +
 ' specularHighlight = specular * pow(specularHighlight, 20.0);';
 
@@ -1038,12 +1582,18 @@ var newGlossyRay =
 
 //linchi
 var newRefractiveRay = 
-' float ratio = 0.8;'+
+' vec3 refRay;'+
+' float ratio = '+ratio+';'+
 ' if(dot(ray,normal) > 0.0){'+
-' normal = -normal;'+
-' ratio = 1.0/ratio;}'+
-' ray = normalize(ray);'+
-' ray = normalize(refract(ray, normal, ratio));'+
+' normal = normal;'+
+' ratio = 1.0/ratio;'+
+' refRay = normalize(refract(ray, -normal, ratio));}'+
+' else refRay = normalize(refract(ray, normal, ratio));'+
+//' recursiveColor = calculateColorCopy(hit, refRay, light, lightColor);' +
+//' recuFlag = 1;'+
+'   nxtRay = normalize(reflect(ray, normal));'+
+'   ray = refRay;'+
+'   hasNxtRay = true;'+
 specularReflection +
 ' specularHighlight = specular* 0.4 * pow(specularHighlight, 20.0);';
 
@@ -1285,11 +1835,20 @@ function elementPos(element) {
 function showProperty(material, color){
     $( "#popup" ).show("slide", { direction: "right" }, 1000);
     $( "#material" ).val(material);
+    if(material==3) $('#materialMore').text('Reflective Index');
+    else if(material==1 || material==2) $('#materialMore').text('Glossiness');
     $('#materialAdjust').val(100 * glossiness);
     $("#rgb").val(color);
     $('#scale').val(10);
 }
-
+function showAdjust(mat){
+    if(mat==1 || mat ==2){
+        $('#materialMore').text("Glossiness");
+    }
+    if(mat==3){
+        $('#materialMore').text("Refractive index ");
+    }
+}
 function hideProperty(){   
    $('#popup').toggle( "slide" );
 
