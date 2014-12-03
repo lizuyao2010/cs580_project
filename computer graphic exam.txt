@@ -1,0 +1,5 @@
+Principles(no coding , calculations, memorizing huge things)
+everything related to the 3D CG pipeline
+raytracing,radiosity,NPR:basics
+OpenGL,GPUs:core ideas(no function signatures etc)
+comercial tools-basics.

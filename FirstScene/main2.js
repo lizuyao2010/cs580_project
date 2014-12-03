@@ -2,9 +2,15 @@ var gl;
 var canvas;
 var glossiness = 0.6;
 //camera
+<<<<<<< Updated upstream
 var viewX=-2.5;
 var viewY=2.5;
 var viewZ=2.5;
+=======
+var viewX=-2.4;
+var viewY=2.4;
+var viewZ=2.4;
+>>>>>>> Stashed changes
 var eye = Vector.create([viewX, viewY, viewZ]);
 var redColor = Vector.create([1, 0, 0]);
 var blueColor = Vector.create([0, 0, 1]);
@@ -22,6 +28,10 @@ lights.push(new RealLight(light1,whiteColor));
 //lights.push(new RealLight(light1,lightColor1));
 //lights.push(new RealLight(light2,lightColor2));
 //lights.push(new RealLight(light3,lightColor3));
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 var nextObjectId = 0;
 
 var MATERIAL_DIFFUSE = 0;
@@ -38,9 +48,14 @@ window.onload=function()
     if (gl)
     {
         ui=new UI();
+<<<<<<< Updated upstream
      //   ui.setObjects(makeCubes()); 
 
        ui.setObjects(makeSphereColumn());
+=======
+        //ui.setObjects(makeSphereColumn());
+        ui.setObjects(makeCubes());
+>>>>>>> Stashed changes
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
         document.onkeydown = handleKeyDown;
@@ -48,6 +63,7 @@ window.onload=function()
         var start = new Date();
         tick();
         setInterval(function(){ 
+<<<<<<< Updated upstream
             ui.render((new Date() - start) * 0.001); 
         }, 1000 / 60);
         
@@ -61,16 +77,42 @@ window.onload=function()
         return;
     })
 
+=======
+            //lights[0].direction.elements[0]=lights[0].direction.elements[0]*Math.cos(Math.PI/180)-lights[0].direction.elements[2]*Math.sin(Math.PI/180);
+            //lights[0].direction.elements[2]=lights[0].direction.elements[0]*Math.sin(Math.PI/180)+lights[0].direction.elements[2]*Math.cos(Math.PI/180);
+            ui.render((new Date() - start) * 0.001);
+        }, 1000 / 60);
+        
+    }
+    
+>>>>>>> Stashed changes
 }
 var mouseDown = false, oldX, oldY;
 
 document.onmousedown = function(event) {
+<<<<<<< Updated upstream
    
+=======
+    if(event.target.id=='set'){
+    //    alert("OK");
+        var sel = document.getElementById("material");
+        var selMaterial = sel.options[sel.selectedIndex].value;
+        var selRGB = document.getElementById("rgb").value;
+    //    ui.renderer.setProperty(selMaterial, selRGB);
+        hideProperty();
+        return;
+    }
+ /*   else if(document.getElementById("popup").style.display!='none'){
+        alert("pop");
+        return;
+    }*/
+>>>>>>> Stashed changes
     var mouse = canvasMousePos(event);
     oldX = mouse.x;
     oldY = mouse.y;
 
     if(mouse.x >= 0 && mouse.x < 512 && mouse.y >= 0 && mouse.y < 512) {
+<<<<<<< Updated upstream
         mouseDown = !ui.mouseDown(mouse.x, mouse.y);
         return false;
     }
@@ -105,6 +147,13 @@ document.onmouseup = function(event) {
   var mouse = canvasMousePos(event);
   ui.mouseUp(mouse.x, mouse.y);
 };
+=======
+    mouseDown = !ui.mouseDown(mouse.x, mouse.y);
+    return false;
+}
+    return true;
+};
+>>>>>>> Stashed changes
 var currentlyPressedKeys = {};
 
 
@@ -131,23 +180,38 @@ function handleKeys() {
     } else {
         Zspeed = 0;
         }
+<<<<<<< Updated upstream
     if (currentlyPressedKeys[37] || currentlyPressedKeys[65]) {
         // Left cursor key or A
         Xspeed = 0.001;
     } else if (currentlyPressedKeys[39] || currentlyPressedKeys[68]) {
+=======
+    if (currentlyPressedKeys[37]) {
+        // Left cursor key
+        Xspeed = 0.001;
+    } else if (currentlyPressedKeys[39]) {
+>>>>>>> Stashed changes
         // Right cursor key or D
         Xspeed = -0.001;
     } else {
         Xspeed = 0;
         }
+<<<<<<< Updated upstream
     if (currentlyPressedKeys[38] || currentlyPressedKeys[87]) {
         // Up cursor key or W
         Yspeed = 0.001;
     } else if (currentlyPressedKeys[40] || currentlyPressedKeys[83]) {
+=======
+    if (currentlyPressedKeys[38] ) {
+        // Up cursor key or W
+        Yspeed = 0.001;
+    } else if (currentlyPressedKeys[40] ) {
+>>>>>>> Stashed changes
         // Down cursor key
         Yspeed = -0.001;
     }else if (currentlyPressedKeys[69]) {
         // E
+<<<<<<< Updated upstream
         viewX=viewX*Math.cos(theta)-viewZ*Math.sin(theta);
         viewZ=viewX*Math.sin(theta)+viewZ*Math.cos(theta);
     } else if (currentlyPressedKeys[81]) {
@@ -156,6 +220,31 @@ function handleKeys() {
         viewZ=viewX*Math.sin(-theta)+viewZ*Math.cos(-theta);
     } 
     else {
+=======
+        viewX=viewX*Math.cos(theta)+viewY*Math.sin(theta);
+        viewY=-viewX*Math.sin(theta)+viewY*Math.cos(theta);
+    } else if (currentlyPressedKeys[81]) {
+        // Q
+        viewX=viewX*Math.cos(-theta)+viewY*Math.sin(-theta);
+        viewY=-viewX*Math.sin(-theta)+viewY*Math.cos(-theta);
+    } else if (currentlyPressedKeys[65]) {
+        // A
+        viewX=viewX*Math.cos(-theta)-viewZ*Math.sin(-theta);
+        viewZ=viewX*Math.sin(-theta)+viewZ*Math.cos(-theta);
+    } else if (currentlyPressedKeys[68]) {
+        // D
+        viewX=viewX*Math.cos(theta)-viewZ*Math.sin(theta);
+        viewZ=viewX*Math.sin(theta)+viewZ*Math.cos(theta);
+    }else if (currentlyPressedKeys[87]) {
+        // W
+        viewY=viewY*Math.cos(theta)+viewZ*Math.sin(theta);
+        viewZ=-viewY*Math.sin(theta)+viewZ*Math.cos(theta);
+    }else if (currentlyPressedKeys[83]) {
+        // S
+        viewY=viewY*Math.cos(-theta)+viewZ*Math.sin(-theta);
+        viewZ=-viewY*Math.sin(-theta)+viewZ*Math.cos(-theta);
+    } else {
+>>>>>>> Stashed changes
         Yspeed = 0;
     }
 
@@ -298,6 +387,7 @@ Render.prototype = {
         this.textures.reverse();
         this.sampleCount++;
     },
+<<<<<<< Updated upstream
     setProperty:function(selMaterial, selMatMore, selRGB){
         this.objects[this.selectedIndex].material = selMaterial;
         var rgb = selRGB.split(',');
@@ -308,6 +398,13 @@ Render.prototype = {
         this.setObjects(this.objects);
         this.selectedIndex = -1;
         this.selectedObject = null;
+=======
+    setProperty:function(selMaterial, selRGB){
+        this.objects[this.selectedIndex].material = selMaterial;
+        var rgb = selRGB.split(',');
+        this.objects[this.selectedIndex].color = Vector.create([parseFloat(rgb[0]),parseFloat(rgb[1]),parseFloat(rgb[2])]);
+        this.setObjects(this.objects);
+>>>>>>> Stashed changes
     }
 }
 //------UI class
@@ -329,14 +426,21 @@ UI.prototype = {
     },
     mouseDown: function(x,y){
         //change highlighted back to normal
+<<<<<<< Updated upstream
     /*    if(this.renderer.tempColor != null){
             this.objects[this.renderer.selectedIndex].color = this.renderer.tempColor;
             this.renderer.selectedIndex = -1;
             this.renderer.selectedObject = null;
+=======
+        if(this.renderer.tempColor != null){
+            this.objects[this.renderer.selectedIndex].color = this.renderer.tempColor;
+            this.renderer.selectedIndex = -1;
+>>>>>>> Stashed changes
             this.renderer.setObjects(this.objects);
             hideProperty();
             this.renderer.tempColor = null;
         }
+<<<<<<< Updated upstream
     */
         var t =  Number.MAX_VALUE;
         var origin = eye;
@@ -369,6 +473,13 @@ UI.prototype = {
         this.renderer.selectedObject = null;
         this.renderer.selectedIndex = -1;
         t =  Number.MAX_VALUE;
+=======
+        var t =  Number.MAX_VALUE;
+        var origin = eye;
+        var ray = getEyeRay(this.renderer.modelviewProjection.inverse(), (x / 512) * 2 - 1, 1 - (y / 512) * 2);
+        this.renderer.selectedObject = null;
+        this.renderer.selectedIndex = -1;
+>>>>>>> Stashed changes
         for(var i = 1; i < this.objects.length; i++) {
             var objectT = this.objects[i].intersect(origin, ray);
             if(objectT < t) {
@@ -382,6 +493,7 @@ UI.prototype = {
             this.renderer.tempColor = this.objects[this.renderer.selectedIndex].color;
             this.objects[this.renderer.selectedIndex].color = Vector.create([0.0,1.0,1.0]);
             this.renderer.setObjects(this.objects);
+<<<<<<< Updated upstream
             showProperty(this.renderer.selectedObject.material, this.renderer.tempColor.toStringVal());
 
         }
@@ -418,6 +530,11 @@ UI.prototype = {
         }
     }
   
+=======
+            showProperty(x,y);
+        }
+    }
+>>>>>>> Stashed changes
 }
 
 
@@ -566,6 +683,7 @@ Sphere.prototype = {
     getMaxCorner: function() {
       return this.center.add(this.temporaryTranslation).add(Vector.create([this.radius, this.radius, this.radius]));
     },
+<<<<<<< Updated upstream
     intersect: function(origin, ray){
         return Sphere.intersect(origin, ray, this.center.add(this.temporaryTranslation), this.radius);
     },
@@ -574,6 +692,10 @@ Sphere.prototype = {
     },
     translate: function(translation) {
       this.center = this.center.add(translation);
+=======
+        intersect: function(origin, ray){
+        return Sphere.intersect(origin, ray, this.center.add(this.temporaryTranslation), this.radius);
+>>>>>>> Stashed changes
     }
 
 }
@@ -634,6 +756,7 @@ Light.prototype = {
     },
     getNormalCalculationCode: function(){
         return '';
+<<<<<<< Updated upstream
     },
     temporaryTranslate :function(translation) {
       var tempLight = light.add(translation);
@@ -646,26 +769,47 @@ Light.clampPosition = function(position) {
     position.elements[i] = Math.max(0.1 - 1, Math.min(1 - 0.1, position.elements[i]));
   }
 };
+=======
+    }
+}
+>>>>>>> Stashed changes
 
 //----geometry construction functions
 function makeSphereColumn(){
     var objects = [];
+<<<<<<< Updated upstream
     objects.push(new Sphere(Vector.create([0, 0.70, 0]), 0.15, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),3));
 //    objects.push(new Sphere(Vector.create([0, 0.25, 0]), 0.30, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),0));
 //    objects.push(new Sphere(Vector.create([0, -0.35, 0]), 0.30, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),2));
     objects.push(new Sphere(Vector.create([0, -0.75, 0]), 0.40, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1));
     objects.push(new Cube( Vector.create([0.5, -0.75, -0.5]), Vector.create([0.9, -0.7, 0.5]) , nextObjectId++,Vector.create([0.75, 0.75, 0.75]),3)); 
+=======
+    objects.push(new Sphere(Vector.create([0, 0.70, 0]), 0.15, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1));
+    objects.push(new Sphere(Vector.create([0, 0.25, 0]), 0.30, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),0));
+    objects.push(new Sphere(Vector.create([0, -0.35, 0]), 0.30, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),2));
+    objects.push(new Sphere(Vector.create([0, -0.75, 0]), 0.40, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),2));
+    objects.push(new Cube( Vector.create([0.5, -0.75, -0.5]), Vector.create([0.9, -0.7, 0.5]) , nextObjectId++,Vector.create([0.75, 0.75, 0.75]),0)); 
+>>>>>>> Stashed changes
     //objects.push(new Cube( Vector.create([-0.5, -0.5, -0.5]), Vector.create([0.5,0.5, 0.5]) , nextObjectId++,1)); 
     
     //objects.push(new Cube( Vector.create([-0.99, -0.99, -0.99]), Vector.create([0.99,0.99, 0.99]) , nextObjectId++,1)); 
     //objects.push(new Cube( Vector.create([3, -2.95, 3]), Vector.create([-3, -2.96, -3]) , nextObjectId++,1)); 
+<<<<<<< Updated upstream
 //    objects.push(new Cube( Vector.create([-3, -3, -2.99]), Vector.create([3, 3, -3]) , nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1)); 
+=======
+    objects.push(new Cube( Vector.create([-3, -3, -2.99]), Vector.create([3, 3, -3]) , nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1)); 
+>>>>>>> Stashed changes
     //objects.push(new Cube( Vector.create([3, -3, 3]), Vector.create([2.99, 3, -3]) , nextObjectId++,1)); 
     //objects.push(new Cube( Vector.create([-3, -3, -3]), Vector.create([-2.99, 3, 3]) , nextObjectId++,1)); 
     
     
     return objects;
 }
+<<<<<<< Updated upstream
+=======
+
+
+>>>>>>> Stashed changes
 function makeCubes(){
     var objects = [];
     objects.push(new Cube( Vector.create([-3, -3, -2.99]), Vector.create([3, 3, -3]) , nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1)); 
@@ -697,6 +841,10 @@ function makeCube(){
     objects.push(new Sphere(Vector.create([0, 0, 0]),Math.sqrt(0.65), nextObjectId++,Vector.create([1, 1,1]),1));
     return objects;
 }
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 //------webgl utility functions
 /*
 These two funcitons are used to create webgl program, 
@@ -784,7 +932,11 @@ function makeTracerFragmentShader(objects){
     makeShadow(objects) +
     makeCalculateColor(objects) +
     makeMain();
+<<<<<<< Updated upstream
 //    console.log(fShaderStr);
+=======
+    console.log(fShaderStr);
+>>>>>>> Stashed changes
     return fShaderStr;
 }
 
@@ -887,6 +1039,11 @@ var declareVariable =
 ' uniform float glossiness;' +
 ' vec3 roomCubeMin = vec3(-3.0, -3.0, -3.0);' +
 ' vec3 roomCubeMax = vec3(3.0, 3.0, 3.0);';
+<<<<<<< Updated upstream
+=======
+//' vec3 roomCubeMin = vec3(-3.0, -3.0, -3.0);' +
+//' vec3 roomCubeMax = vec3(3.0, 3.0, 3.0);';
+>>>>>>> Stashed changes
 
 var functionCode = 
 'vec2 intersectCube(vec3 origin, vec3 ray, vec3 cubeMin, vec3 cubeMax) {  '+ 
@@ -971,7 +1128,11 @@ var newGlossyRay =
 
 //linchi
 var newRefractiveRay = 
+<<<<<<< Updated upstream
 ' float ratio = 1.0;'+
+=======
+' float ratio = 1.1;'+
+>>>>>>> Stashed changes
 ' if(dot(ray,normal) < 0.0001){'+
 ' normal = -normal;'+
 ' ratio = 1.0/ratio;}'+
@@ -1085,9 +1246,12 @@ Vector.prototype.ensure4 = function(w) {
 Vector.prototype.toString = function(){
     return '('+this.elements.join(', ')+')';
 }
+<<<<<<< Updated upstream
 Vector.prototype.toStringVal = function(){
     return this.elements.join(', ');
 }
+=======
+>>>>>>> Stashed changes
 Vector.prototype.divideByW = function() {
   var w = this.elements[this.elements.length - 1];
   var newElements = [];
@@ -1211,6 +1375,7 @@ function elementPos(element) {
   return { x: x, y: y };
 }
 
+<<<<<<< Updated upstream
 function showProperty(material, color){
     $( "#popup" ).show("slide", { direction: "right" }, 1000);
     $( "#material" ).val(material);
@@ -1223,3 +1388,17 @@ function hideProperty(){
 
 }
 
+=======
+function showProperty(x,y){
+    document.getElementById('popup').style.display = "block";
+    document.getElementById('popup').style.left = ''+x+'px';
+    document.getElementById('popup').style.top = ''+y+'px';
+}
+
+function hideProperty(){
+    document.getElementById('popup').style.display = "none";
+}
+
+function setProperty(){
+}
+>>>>>>> Stashed changes

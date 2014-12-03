@@ -2,23 +2,23 @@ var gl;
 var canvas;
 var glossiness = 0.6;
 //camera
-var viewX=-2.5;
-var viewY=2.5;
-var viewZ=2.5;
+var viewX=1;
+var viewY=1;
+var viewZ=1;
 var eye = Vector.create([viewX, viewY, viewZ]);
 var redColor = Vector.create([1, 0, 0]);
 var blueColor = Vector.create([0, 0, 1]);
 var greenColor = Vector.create([0,1,0]);
 var whiteColor = Vector.create([1,1,1]);
 var yellowColor = Vector.create([1,1,0]);
-var light0 = Vector.create([0.7, 0.7, -0.7]);
+var light0 = Vector.create([-0.7, 0.7, -0.7]);
 //var light0 = Vector.create([0.9, 0.5, -0.6]);
 var light1 = Vector.create([0.7,0.7,0.7]);
 var light2 = Vector.create([-0.7,0.7,0.7]);
 var light3 = Vector.create([-0.7, 0.7,-0.7]);
 var lights=new Array();
 lights.push(new RealLight(light0,whiteColor));
-lights.push(new RealLight(light1,whiteColor));
+//lights.push(new RealLight(light1,whiteColor));
 //lights.push(new RealLight(light1,lightColor1));
 //lights.push(new RealLight(light2,lightColor2));
 //lights.push(new RealLight(light3,lightColor3));
@@ -488,10 +488,13 @@ function RealLight(direction,lightColor){
     this.color=lightColor;
     this.direction=direction;
 }
+var rotateX=1;
+var rotateY=0;
+var rotateZ=0;
 //----Light class
 Light = function(direction,lightColor){
     this.lightStr=new Array();
-    this.temporaryTranslation = Vector.create([0, 0, 0]);
+    this.temporaryTranslation = Vector.create([rotateX,rotateY,rotateZ]);
     for(var i=0;i<lights.length;i++){
         this.lightStr[i]="light"+i;
     }
@@ -499,6 +502,7 @@ Light = function(direction,lightColor){
     for(var i=0;i<lights.length;i++){
         this.lightColorStr[i]="lightColor"+i;
     }
+    
 }
 Light.prototype = {
     setUniforms : function(renderer) {

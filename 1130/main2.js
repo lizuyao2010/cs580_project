@@ -66,6 +66,21 @@ window.onload=function()
     for(var i=0;i<lights.length;i++){
         $('#lightsList').append('<div><input type="button" class="buttons" id="light'+i+'" value="light'+i+'"></div>');
     }
+    $('#yellow').click(function(){
+        background='else if(hit.x > 2.9999) surfaceColor = vec3(0.9, 0.9, 0.21);';
+        ui.renderer.setObjects(ui.renderer.objects);
+        return;
+    })
+    $('#purple').click(function(){
+        background='else if(hit.x > 2.9999) surfaceColor = vec3(0.43, 0.05, 0.81);'
+        ui.renderer.setObjects(ui.renderer.objects);
+        return;
+    })
+    $('#chess').click(function(){
+        background='else if(hit.x > -2.9999) { float step = 0.3; float y = hit.y/step; float z = hit.z/step; if (y-floor(y)<0.5 && z-floor(z)<0.5) surfaceColor = vec3(1,1,1); if(y-floor(y)<0.5 && z-floor(z)>0.5) surfaceColor = vec3(0,0,0); if (y-floor(y)>0.5 && z-floor(z)<0.5) surfaceColor = vec3(0,0,0); if(y-floor(y)>0.5 && z-floor(z)>0.5) surfaceColor = vec3(1,1,1);}';
+        ui.renderer.setObjects(ui.renderer.objects);
+        return;
+    })
 }
 var mouseDown = false, oldX, oldY;
 
@@ -844,7 +859,7 @@ function makeShadow(objs){
     '   return 1.0;' +
     ' }';
 }
-
+var background='else if(hit.x > 2.9999) surfaceColor = vec3(0.43, 0.05, 0.81);'
 function makeCalculateColor(objects){
      return '' +
 '   vec3 calculateColor(vec3 origin, vec3 ray, vec3 light,vec3 lightColor) {' +
@@ -875,7 +890,7 @@ function makeCalculateColor(objects){
     //'if(hit.x < -2.9999) { float step = 0.3; float y = hit.y/step; if (y-floor(y)<0.5) surfaceColor = vec3(1,1,1); else surfaceColor = vec3(0,0,0);}'+
     'if(hit.x < -2.9999) { float step = 0.3; float y = hit.y/step; float z = hit.z/step; if (y-floor(y)<0.5 && z-floor(z)<0.5) surfaceColor = vec3(1,1,1); if(y-floor(y)<0.5 && z-floor(z)>0.5) surfaceColor = vec3(0,0,0); if (y-floor(y)>0.5 && z-floor(z)<0.5) surfaceColor = vec3(0,0,0); if(y-floor(y)>0.5 && z-floor(z)>0.5) surfaceColor = vec3(1,1,1);}'+
     //'else if(hit.x > 2.9999) { float step = 0.3; float y = hit.y/step; float z = hit.z/step; if (y-floor(y)<0.5 && z-floor(z)<0.5) surfaceColor = vec3(1,1,1); if(y-floor(y)<0.5 && z-floor(z)>0.5) surfaceColor = vec3(0,0,0); if (y-floor(y)>0.5 && z-floor(z)<0.5) surfaceColor = vec3(0,0,0); if(y-floor(y)>0.5 && z-floor(z)>0.5) surfaceColor = vec3(1,1,1);}'+
-    'else if(hit.x > 2.9999) surfaceColor = vec3(0.43, 0.05, 0.81);'+
+    background+
     'else if(hit.y < -2.9999) surfaceColor = vec3(0.80,0.964, 0.725);'+
         newDiffuseRay +
 '     } else if(t == 10000.0) { '+
