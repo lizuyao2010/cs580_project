@@ -4,7 +4,8 @@ var glossiness = 0.6;
 var bounce  = 5;
 var ks = 2;
 var raysCount = 1;
-var ratio = 0.8;
+var refIndex = 1.5;
+var shadowRadius = 1.1;
 //camera1
 var viewX=-2.5;
 var viewY=2.5;
@@ -312,6 +313,7 @@ Render.prototype = {
         this.uniforms.glossiness = glossiness;
         this.uniforms.specular = ks;
         this.uniforms.timeSinceStart = timeSinceStart;
+        this.uniforms.refIndex = parseFloat(refIndex);
         /*this.uniforms.ray00 = getEyeRay(matrix, -0.5, -0.5);
         this.uniforms.ray01 = getEyeRay(matrix, -0.5, +0.5);
         this.uniforms.ray10 = getEyeRay(matrix, +0.5, -0.5);
@@ -343,10 +345,11 @@ Render.prototype = {
         this.selectedObject.color = Vector.create([parseFloat(rgb[0]),parseFloat(rgb[1]),parseFloat(rgb[2])]);
         this.tempColor = this.selectedObject.color;
         if(selMaterial==3){
-            ratio = selMatMore/10.0;
+            refIndex = selMatMore/100;
         }
-        else 
-            glossiness = selMatMore/100.0;
+        else {
+            glossiness = (selMatMore-100)/100.0;
+        }
         if(this.selectedObject instanceof Sphere){
 
             this.selectedObject.radius = Math.min(2.5, this.selectedObject.radius * parseFloat(selScale));
@@ -357,6 +360,15 @@ Render.prototype = {
             dim = dim.multiply(s);
             this.selectedObject.maxCorner = this.selectedObject.minCorner.add(dim);
             this.selectedObject.maxCorner.clamp(-2.9,2.9);
+        }
+        else if(this.selectedObject instanceof Cylinder){
+            var zdiff = this.selectedObject.zmax - this.selectedObject.zmin;
+            var s = parseFloat(selScale);
+            zdiff = 0.5 *s*zdiff;
+            //ensure passed float value to GLSL code
+            this.selectedObject.zmin = parseFloat(this.selectedObject.center.elements[2]- zdiff + 0.0001);
+            this.selectedObject.zmax = parseFloat(this.selectedObject.center.elements[2] + zdiff+0.0001);
+            this.selectedObject.radius = parseFloat(s * this.selectedObject.radius);
         }
 
         this.setObjects(this.objects);
@@ -463,7 +475,6 @@ UI.prototype = {
             this.renderer.selectedObject.translate(hit.subtract(this.originalHit));
             this.moving = false;
             this.renderer.sampleCount = 0;
-
         }
     },
     clearRoom:function(){
@@ -477,6 +488,11 @@ UI.prototype = {
     addSphere:function(){
         var newSphere =  new Sphere(Vector.create([0, 0.0, 0]), 0.15, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1);
         this.updateAdded(newSphere);
+    },
+    addCylinder:function(){
+        var newCylinder = new Cylinder(Vector.create([0.1,0.1,0.1]), 0.20, -0.5, 0.5, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1); 
+
+        this.updateAdded(newCylinder);
     },
     updateAdded:function(obj){
         this.renderer.tempColor = obj.color;
@@ -519,7 +535,7 @@ Cube.prototype.getIntersectCode = function() {
 Cube.prototype.getShadowCode = function() {
   return '' +
   this.getIntersectCode() +
-' if(' + this.intersectStr + '.x > 0.0 && ' + this.intersectStr + '.x < 1.0 && ' + this.intersectStr + '.x < ' + this.intersectStr + '.y) return 0.0;';
+' if(' + this.intersectStr + '.x > 0.0 && ' + this.intersectStr + '.x < '+shadowRadius+' && ' + this.intersectStr + '.x < ' + this.intersectStr + '.y) return 0.0;';
 };
 
 Cube.prototype.getMinimumIntersectCode = function() {
@@ -613,7 +629,7 @@ Sphere.prototype = {
     getShadowCode:function(){
         return '' +
         this.getIntersectCode() +
-        ' if(' + this.intersectVar + ' < 1.0) return 0.0;';
+        ' if(' + this.intersectVar + ' < '+shadowRadius+') return 0.0;';
     },
     getNormalCalculationCode : function() {
     return '' +
@@ -674,11 +690,13 @@ Cylinder = function(center, radius, zmin ,zmax, id, color, material){
     this.centerVar = 'sCenter'+id;
     this.radiusVar = 'sRadius'+id;
     this.intersectVar = 'tCylinder' + id;
+//    this.zminVar = 'cZmin'+id;
+//    this.zmaxVar = 'cZmax'+id;
     this.material = material;
     this.color = color;
     this.temporaryTranslation = Vector.create([0, 0, 0]);    
-    this.zmin = zmin;
-    this.zmax = zmax;
+    this.zmin = parseFloat(zmin);
+    this.zmax = parseFloat(zmax);
 }
 
 
@@ -689,12 +707,15 @@ Cylinder.prototype = {
         return '' +
         ' uniform vec3 ' + this.centerVar + ';' +
         ' uniform float ' + this.radiusVar + ';';
+ //       ' uniform float '+ this.zminVar+';'+
+ //       ' uniform float '+ this.zmaxVar+';';
+        
     },
     //float tSphere0 = intersectSphere(origin, ray, sphereCenter0, sphereRadius0); 
     getIntersectCode:function(){
         return '' +
         ' float ' + this.intersectVar + ' = intersectCylinder(origin, ray, ' + this.centerVar + ', ' + this.radiusVar + ', '+ this.zmin + ', '+ this.zmax+ ');';
-    },
+    },//vec3 origin, vec3 ray, vec3 sCenter, float sRadius,float zmin, float zmax
     //if(tSphere0 < t) t = tSphere0; 
     getMinimumIntersectCode:function(){
         return '' +
@@ -703,27 +724,33 @@ Cylinder.prototype = {
     getShadowCode:function(){
         return '' +
         this.getIntersectCode() +
-        ' if(' + this.intersectVar + ' < 1.0) return 0.0;';
+        ' if(' + this.intersectVar + ' < '+shadowRadius+') return 0.0;';
     },
     getNormalCalculationCode : function() {
     return '' +
-    ' else if(t == ' + this.intersectVar + ') normal = normalForCylinder(hit, ' + this.centerVar + ', ' + this.radiusVar + ');';
+    ' else if(t == ' + this.intersectVar + ') {normal = normalForCylinder(hit, ' + this.centerVar + ', ' + this.radiusVar + ','+this.zmin + ', '+ this.zmax+ ');'+
+    [newDiffuseRay, newReflectiveRay, newGlossyRay,newRefractiveRay][this.material]+
+    ' surfaceColor = vec3'+this.color.toString()+'; }';
     },
     setUniforms:function(renderer){
         renderer.uniforms[this.centerVar] = this.center.add(this.temporaryTranslation);
         renderer.uniforms[this.radiusVar] = this.radius;
+ //       renderer.uniforms[this.zmaxVar] = this.zmax;
+ //       renderer.uniforms[this.zminVar] = this.zmin;
     },
-
+// modified Linchi
     intersect: function(origin, ray){
         return Cylinder.intersect(origin, ray, this.center.add(this.temporaryTranslation), this.radius, this.zmin, this.zmax);
     },
     getMinCorner: function() {
         var minxy= this.center.add(this.temporaryTranslation).subtract(Vector.create([this.radius, this.radius, this.radius]));
-        return Vector.create([minxy.x, minxy.y, zmin]);
+        minxy.elements[2] = this.zmin;
+        return minxy;
     },
     getMaxCorner: function() {
         var maxxy = this.center.add(this.temporaryTranslation).add(Vector.create([this.radius, this.radius, this.radius]));
-        return Vector.create([maxxy.x, maxxy.y, zmax]);
+        maxxy.elements[2] = this.zmax;
+        return maxxy;
     }
 
 }
@@ -733,28 +760,37 @@ Cylinder.prototype.temporaryTranslate = function(translation) {
 
 Cylinder.prototype.translate = function(translation) {
   this.center = this.center.add(translation);
+  this.zmin += translation.elements[2];
+  this.zmax += translation.elements[2];
 };
 Cylinder.intersect = function(origin, ray, center, sRadius, zmin, zmax) {
   var toSphere = origin.subtract(center);
-  var a = ray.x * ray.x  + ray.y * ray.y ;
-  var b = 2.0 * ((toSphere.x* ray.x) +(toSphere.y * ray.y) ); 
-  var c = ((toSphere.x * toSphere.x )+ (toSphere.y * toSphere.y )) - sRadius*sRadius;
+  var tResult =  Number.MAX_VALUE;
+  var tMin = (zmin-origin.elements[2])/ray.elements[2];
+  var hit = origin.add(ray.multiply(tMin));
+  var dist2 = (hit.elements[0]-center.elements[0])* (hit.elements[0]-center.elements[0]) +   
+  (hit.elements[1]-center.elements[1])*(hit.elements[1]-center.elements[1]);
+  var r2 = sRadius * sRadius;
+  if(dist2 <= r2 && tMin > 0.0 && tMin < tResult) tResult = tMin;
+
+  var tMax = (zmax-origin.elements[2])/ray.elements[2];
+   hit = origin.add(ray.multiply(tMax));
+   dist2 = (hit.elements[0]-center.elements[0])* (hit.elements[0]-center.elements[0]) 
+   +   (hit.elements[1]-center.elements[1])*(hit.elements[1]-center.elements[1]);
+  if(dist2 <= r2 && tMax > 0.0 && tMax < tResult) tResult = tMax;
+
+  var a = ray.elements[0] * ray.elements[0]  + ray.elements[1] * ray.elements[1] ;
+  var b = 2.0 * ((toSphere.elements[0]* ray.elements[0]) +(toSphere.elements[1] * ray.elements[1]) ); 
+  var c = ((toSphere.elements[0] * toSphere.elements[0] )+ (toSphere.elements[1] * toSphere.elements[1] )) - sRadius*sRadius;
   var discriminant = b*b - 4*a*c;
   if(discriminant > 0) {
     var t = (-b - Math.sqrt(discriminant)) / (2*a);
- /*   var tcap = (zmin - toSphere.z) / ray.z ;
-    var z = toSphere.z + t * ray.z;
-    if( zmin < z && z < zmax && t > 0) {
-      return t;
-    }
-    */
-    if(t > 0){
-        var hit = origin + ray.multiply(t);
-        if(hit.z < zmax && hit.z >zmin)
-            return t;
+    var z = toSphere.elements[2] + t * ray.elements[2]
+    if( zmin < z && z < zmax && t > 0 && t < tResult) {
+       tResult = t; 
     }
   }
-  return Number.MAX_VALUE;
+  return tResult;
 };
 
 // end testing cilinder 
@@ -801,11 +837,13 @@ Cone.prototype = {
     getShadowCode:function(){
         return '' +
         this.getIntersectCode() +
-        ' if(' + this.intersectVar + ' < 1.0) return 0.0;';
+        ' if(' + this.intersectVar + ' < '+shadowRadius+') return 0.0;';
     },
     getNormalCalculationCode : function() {
     return '' +
-    ' else if(t == ' + this.intersectVar + ') normal = normalForCone(hit, ' + this.centerVar + ', ' + this.radiusVar + ');';
+    ' else if(t == ' + this.intersectVar + ') {normal = normalForCone(hit, ' + this.centerVar + ', ' + this.radiusVar + ','+ this.zmin + ', '+ this.zmax+ ');'+
+     [newDiffuseRay, newReflectiveRay, newGlossyRay,newRefractiveRay][this.material]+
+    ' surfaceColor = vec3'+this.color.toString()+'; }';
     },
     setUniforms:function(renderer){
         renderer.uniforms[this.centerVar] = this.center.add(this.temporaryTranslation);
@@ -973,11 +1011,11 @@ Light.clampPosition = function(position) {
 //----geometry construction functions
 function makeSphereColumn(){
     var objects = [];
- //   objects.push(new Sphere(Vector.create([0.0,0.0,0.0]), 0.45, nextObjectId++,Vector.create([1.0,1.0,1.0]),3));
-     objects.push(new Sphere(Vector.create([-2.7, -0.75, 0]), 0.40, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),3));
- //   objects.push(new Cube( Vector.create([-1.5, -1.75, -0.5]), Vector.create([-0.1, -1.2, 0.5]) , nextObjectId++,Vector.create([0.75, 0.75, 0.75]),3)); 
- //objects.push(new Cone( Vector.create([0.5, -0.75, -0.9 ]), 0.6 , -0.00001, 0.5  , nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1)); 
- objects.push(new Cylinder(Vector.create([0.7, 0.5, .6]), 0.06  , -0.5, 0.5 , nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1)); 
+ //   objects.push(new Sphere(Vector.create([0.5,-0.75, -0.4]), 0.6, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),3));
+ //    objects.push(new Sphere(Vector.create([-2.7, -0.75, 0]), 0.40, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),3));
+//   objects.push(new Cube( Vector.create([-1.5, -1.75, -0.5]), Vector.create([-0.1, -1.2, 0.5]) , nextObjectId++,Vector.create([1.0, 1.0, 1.0]),3)); 
+ // objects.push(new Cylinder(Vector.create([-1.5, 1.1, -0.5]), 0.20, -0.5, 0.5, nextObjectId++,Vector.create([0.75, 0.75, 0.75]),3)); 
+    objects.push(new Cone( Vector.create([0.5, -0.75, -0.9 ]), 0.6 , -0.4, 0.5  , nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1));
  //    objects.push(new Cube( Vector.create([-3, -3, -2.99]), Vector.create([3, 3, -3]) , nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1)); 
     //objects.push(new Cube( Vector.create([3, -3, 3]), Vector.create([2.99, 3, -3]) , nextObjectId++,1)); 
     //objects.push(new Cube( Vector.create([-3, -3, -3]), Vector.create([-2.99, 3, 3]) , nextObjectId++,1)); 
@@ -1300,7 +1338,7 @@ function makeTracerFragmentShader(objects){
     makeShadow(objects) +
     makeCalculateColor(objects) +
     makeMain();
-//    console.log(fShaderStr);
+   console.log(fShaderStr);
     return fShaderStr;
 }
 
@@ -1347,8 +1385,8 @@ function makeCalculateColor(objects){
     background+
     'else if(hit.y < -2.9999 ) surfaceColor = vec3(0.80,0.964, 0.725);'+//floor
     'else if (hit.y > 2.9999 ) surfaceColor = vec3(1.0,0.964, 0.725);'+ //ceiling
-    'else if (hit.z > 2.9999) surfaceColor = vec3(0.80,0.964, 1.0);'+ //front
-    'else if (hit.z < -2.9999) surfaceColor = vec3(1.0,0.5, 1.0);'+ //back
+    'else if (hit.z > 2.9999) surfaceColor = vec3(0.6,1.0,0.8);'+ //back
+    'else if (hit.z < -2.9999) surfaceColor = vec3(1.0,0.5, 1.0);'+ //front
         newDiffuseRay +
 '     } else if(t == 10000.0) { '+
 '       break;' +
@@ -1416,6 +1454,7 @@ var declareVariable =
 ' uniform sampler2D texture;' +
 ' uniform float glossiness;' +
 ' uniform float specular;'+
+' uniform float refIndex;'+
 ' vec3 roomCubeMin = vec3(-3.0, -3.0, -3.0);' +
 ' vec3 roomCubeMax = vec3(3.0, 3.0, 3.0);';
 
@@ -1453,30 +1492,54 @@ var functionCode =
 '     return (hit - sCenter) / sRadius; '+ 
 '  } '+
 ' float intersectCylinder(vec3 origin, vec3 ray, vec3 sCenter, float sRadius,float zmin, float zmax) {   '+ 
+'     vec3 toSphere = origin - sCenter; '+ 
+'     float tResult = 10000.0;'+ 
+// modified Linchi
+// intersect with zmin cap
+'      float tMin = (zmin-origin.z)/ray.z;'+
+'       vec3 hitMin = origin + ray * tMin;'+
+'       float dist2= (hitMin.x - sCenter.x)*(hitMin.x - sCenter.x) + (hitMin.y - sCenter.y)* (hitMin.y - sCenter.y);'+
+'       float r2 = sRadius * sRadius;'+
+'       if(dist2 <= r2 && tMin > 0.0 && tMin < tResult) tResult = tMin;'+
+// intersect with zmax cap
+'      float tMax = (zmax-origin.z)/ray.z;'+
+'       vec3 hitMax = origin + ray * tMax;'+
+'       dist2= (hitMax.x - sCenter.x)*(hitMax.x - sCenter.x) + (hitMax.y - sCenter.y)* (hitMax.y- sCenter.y);'+
+'       if(dist2 <= r2 && tMax > 0.0 && tMax < tResult) tResult = tMax;'+
 
-'     vec3 toSphere = origin - sCenter; '+  
-
-'     float a = ( (ray.x * ray.x ) + (ray.y * ray.y ) ); '+ 
-'     float b = 2.0 * ((toSphere.x* ray.x) +(toSphere.y * ray.y) ); '+ 
+'    float a = ( (ray.x * ray.x ) + (ray.y * ray.y ) ); '+ 
+'      float b = 2.0 * ((toSphere.x* ray.x) +(toSphere.y * ray.y) ); '+ 
 '     float c = ((toSphere.x * toSphere.x )+ (toSphere.y * toSphere.y )) - sRadius*sRadius; '+ 
 '     float discriminant = b*b - 4.0*a*c; '+ 
 
-'     if(discriminant > 0.0) {     float t = (-b - sqrt(discriminant)) / (2.0 * a); '+ 
-'        float tcap = (zmin - toSphere.z) / ray.z ; '+
-'       float z = toSphere.z + t * ray.z;'+
-'       if( zmin < z && z < zmax){ '+
- '       if(t > 0.0 ) return t; '+ 
- // '       if(t > 0.0  && tcap > 0.0) {if(t<tcap)return t; else return tcap;} '+ 
-
- //'       if(tcap > 0.0 ) return t; '+ 
-
-'        } '+
+'     if(discriminant > 0.0) {    '+ 
+'       float t = (-b - sqrt(discriminant)) / (2.0 * a); '+ 
+'       float hitz = origin.z + t * ray.z;'+
+'       if( zmin < hitz && hitz < zmax){ '+
+'          if(t > 0.0 && t < tResult)  tResult = t; '+ 
+'       } '+ 
 '     } '+ 
-'     return 10000.0; '+ 
-
+'     return tResult; '+ 
 '  } '+
 ' float intersectCone(vec3 origin, vec3 ray, vec3 sCenter, float sRadius,float zmin, float zmax) {   '+ 
-'     vec3 toSphere = origin - sCenter; '+  
+'     vec3 toSphere = origin - sCenter; '+ 
+//modified Linchi
+'     float tResult = 10000.0;'+ 
+'       float tanTheta = 2.0 * sRadius / (zmax - sCenter.z);'+
+'       float radiusMin = tanTheta * (zmin - sCenter.z);'+
+'       float radiusMax = tanTheta * (zmax - sCenter.z);'+
+// intersect with zmin cap
+'      float tMin = (zmin-origin.z)/ray.z;'+
+'       vec3 hitMin = origin + ray * tMin;'+
+'       float dist2= (hitMin.x - sCenter.x)*(hitMin.x - sCenter.x) + (hitMin.y - sCenter.y)* (hitMin.y - sCenter.y);'+
+'       float r2 = radiusMin * radiusMin;'+ // should be the radius at zmin
+'       if(dist2 < r2 && tMin > 0.0 && tMin < tResult) tResult = tMin;'+
+// intersect with zmax cap
+'      float tMax = (zmax-origin.z)/ray.z;'+
+'       vec3 hitMax = origin + ray * tMax;'+
+'       r2 = radiusMax * radiusMax;'+ // should be the radius at the zmax
+'       dist2= (hitMax.x - sCenter.x)*(hitMax.x - sCenter.x) + (hitMax.y - sCenter.y)* (hitMax.y- sCenter.y);'+
+'       if(dist2 < r2 && tMax > 0.0 && tMax < tResult) tResult = tMax;'+
 
 '     float a = ( (ray.x * ray.x ) + (ray.y * ray.y ) - (sRadius*sRadius) * ray.z * ray.z); '+ 
 '     float b = 2.0 * ((toSphere.x* ray.x) +(toSphere.y * ray.y)  - (sRadius*sRadius) * ray.z * toSphere.z ); '+ 
@@ -1484,17 +1547,12 @@ var functionCode =
 '     float discriminant = b*b - 4.0*a*c; '+ 
 
 '     if(discriminant > 0.0) {     float t = (-b - sqrt(discriminant)) / (2.0 * a); '+ 
-'        float tcap = (zmin - toSphere.z) / ray.z ; '+
-'       float z = toSphere.z + t * ray.z;'+
-'       if( zmin < z && z < zmax){ '+
- '       if(t > 0.0 ) return t; '+ 
- // '       if(t > 0.0  && tcap > 0.0) {if(t<tcap)return t; else return tcap;} '+ 
-
- //'       if(tcap > 0.0 ) return t; '+ 
-
+'        float z = origin.z + t * ray.z;'+
+'        if( zmin < z && z < zmax){ '+
+'           if(t > 0.0 && t < tResult)  tResult = t; '+ 
 '        } '+
 '     } '+ 
-'     return 10000.0; '+ 
+'     return tResult; '+ 
 
 '  } '+
 ' float intersectPlane(vec3 origin, vec3 ray, vec3 sCenter, float sRadius,float zmin, float zmax) {   '+ 
@@ -1518,17 +1576,25 @@ var functionCode =
 // '     v.z = 1.0  ;' +
 '     return v; '+ 
 '  } '+
-'  vec3 normalForCone(vec3 hit, vec3 sCenter, float sRadius) {   '+ 
-' vec3 v = (hit - sCenter) / sRadius;   '+
+'  vec3 normalForCone(vec3 hit, vec3 sCenter, float sRadius, float zmin, float zmax) {   '+ 
+//modified Linchi
+'     if(hit.z < zmin + 0.0001) return vec3(0.0, 0.0, -1.0);'+
+'     else if(hit.z > zmax - 0.0001) return vec3(0.0, 0.0, 1.0);'+
+'     else { '+
+'     vec3 v = (hit - sCenter) / sRadius;   '+
 '     v.z = - v.z * tan(sRadius * sRadius); '+ 
 
-'     return v; '+ 
+'     return v; }'+ 
 '  } '+
-'  vec3 normalForCylinder(vec3 hit, vec3 sCenter, float sRadius) {   '+ 
-' vec3 v = (hit - sCenter) / sRadius;   '+
-'     v.z = 0.0; '+ 
-
-'     return v; '+ 
+'  vec3 normalForCylinder(vec3 hit, vec3 sCenter, float sRadius, float zmin, float zmax) {   '+ 
+//modified Linchi
+'     if(hit.z < zmin + 0.0001) return vec3(0.0, 0.0, -1.0);'+
+'     else if(hit.z > zmax - 0.0001) return vec3(0.0, 0.0, 1.0);'+
+'     else { '+
+'       vec3 v = sCenter;'+
+'       v.z = hit.z; '+
+'       return normalize(hit-v); '+
+'    } '+ 
 '  } '+
 
 '  float random(vec3 scale, float seed) {   '+ 
@@ -1583,7 +1649,7 @@ var newGlossyRay =
 //linchi
 var newRefractiveRay = 
 ' vec3 refRay;'+
-' float ratio = '+ratio+';'+
+' float ratio = 1.0/refIndex;'+
 ' if(dot(ray,normal) > 0.0){'+
 ' normal = normal;'+
 ' ratio = 1.0/ratio;'+
@@ -1835,14 +1901,19 @@ function elementPos(element) {
 function showProperty(material, color){
     $( "#popup" ).show("slide", { direction: "right" }, 1000);
     $( "#material" ).val(material);
-    if(material==3) $('#materialMore').text('Reflective Index');
-    else if(material==1 || material==2) $('#materialMore').text('Glossiness');
-    $('#materialAdjust').val(100 * glossiness);
+    if(material==3) {
+        $('#materialMore').text('Reflective Index');
+         $('#materialAdjust').val(refIndex*100);
+    }
+    else if( material==2){ 
+        $('#materialMore').text('Glossiness');
+        $('#materialAdjust').val(100 *(1+ glossiness));
+    }
     $("#rgb").val(color);
     $('#scale').val(10);
 }
 function showAdjust(mat){
-    if(mat==1 || mat ==2){
+    if( mat ==2){
         $('#materialMore').text("Glossiness");
     }
     if(mat==3){
@@ -1865,7 +1936,9 @@ $('#addCube').click(function(){
 $('#addSphere').click(function(){
     ui.addSphere();
 });
-
+$('#addCylinder').click(function(){
+    ui.addCylinder();
+});
 function showVal(id, val){
     $('#'+id).text(val);
     if(id=='bounceVal'){
@@ -1874,6 +1947,9 @@ function showVal(id, val){
     if(id == 'ksVal'){
         ks = parseFloat(val);
     }
-    ui.renderer.setObjects(ui.objects);
+    if(id=='shadowVal'){
+        shadowRadius = parseFloat(val);
+    }
+    ui.renderer.setObjects(ui.renderer.objects);
     ui.render();
 }

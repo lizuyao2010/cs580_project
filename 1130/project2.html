@@ -18,16 +18,16 @@
 
                         <table  class="table table-bordered property">
                             <th>Material:</th>
-                            <tr><td><select id = 'material'>
+                            <tr><td><select id = 'material'  onchange="showAdjust(this.value)">
                                       <option value="0">Diffuse</option>
                                       <option value="1">Mirror</option>
                                       <option value="2">Glossy</option>
-                                      <option value="3">Glass</option>
+                                      <option value="3">Glassy</option>
                                     </select>
                                 </td>
                             </tr>
-                            <tr><td id='materialMore'>Glossiness</td></tr>
-                            <tr><td><input type="range" id="materialAdjust" min="0" max="100" value="60"></td></tr>
+                            <tr><td id='materialMore'></td></tr>
+                            <tr><td><input type="range" id="materialAdjust" min="100" max="200" value="150"></td></tr>
                         </table>
 
                         <table  class="table table-bordered property">
@@ -41,46 +41,9 @@
                         </table>
                         <button type="button" class="btn btn-info" id = 'set'>OK</button>
                 </div>
-                <!--table class="table table-bordered">
-                    <tr>
-                        <td>Material:</td>
-                        <td><select id = 'material'>
-                              <option value="0">Diffuse</option>
-                              <option value="1">Mirror</option>
-                              <option value="2">Glossy</option>
-                              <option value="3">Glass</option>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr><td id='materialMore'>Glossiness</td>
-                    <td><input type="range" id="materialAdjust" min="0" max="100" value="60"></td>
-                    </tr> 
-                    <tr><td>Color: </td>
-                    <td><input type = 'text' size = '10' id = 'rgb' name='rgb'/></td>
-                    </tr>
-                    <tr><td><button type="button" id = 'set'/>OK</td></tr>               
-                </table-->
+               
             </div>
-        <!--table id = 'popup'>
-            <tbody>
-                <tr><td> Material:</td> 
-                    <td><select id = 'material'>
-                          <option value="0">Diffuse</option>
-                          <option value="1">Mirror</option>
-                          <option value="2">Glossy</option>
-                          <option value="3">Glass</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr><td id='materialMore'>Glossiness</td>
-                <td><input type="range" id="materialAdjust" min="0" max="100" value="60"></td>
-                </tr>
-                <tr><td>Color: </td>
-                <td><input type = 'text' size = '10' id = 'rgb' name='rgb'/></td>
-                </tr>
-                <tr><td><button type="button" id = 'set'/>OK</td></tr>
-            </tbody>
-        </table--> 
+     
         </div>    
         <br>
         <!--Use the cursor keys or WASD to control the x,y direction of the camera, and use page up and down to control the z direction of the camera.!-->
@@ -89,9 +52,9 @@
                 <li class="active" id="modelLi"><a href="#model" role="tab" data-toggle="tab"><i class="fa fa-puzzle-piece fa-2x"></i></a></li>
                 <li><a href="#light" role="tab" data-toggle="tab"><i class="fa fa-lightbulb-o  fa-2x"></i></a></li>
                 <li><a href="#animation" role="tab" data-toggle="tab"><i class="fa fa-youtube-play fa-2x"></i></a></li>
-                <li><a href="#design" role = "tab"  data-toggle="tab"><i class="fa fa-paint-brush fa-2x"></i></a></li>
-                <li><a href="#settings" role = "tab"  data-toggle="tab"><i class="fa fa-cog fa-2x"></i></a></li>
-                <li><a href="#background" role = "tab"  data-toggle="tab"><i class="fa fa-cog fa-2x"></i></a></li>
+                <li><a href="#design" role = "tab"  data-toggle="tab"><i class="fa fa-pencil-square-o fa-2x"></i></a></li>
+                <li><a href="#settings" role = "tab"  data-toggle="tab"><i class="fa fa-tachometer fa-2x"></i></a></li>
+                <li><a href="#background" role = "tab"  data-toggle="tab"><i class="fa fa-paint-brush fa-2x"></i></a></li>
             </ul>
 
         </div>
@@ -109,7 +72,10 @@
             </div>
             <div class="tab-pane table-responsive" id="design">
                 <div class="panel panel-default">
-                  <div class="panel-body">
+                    <div class="panel-heading">
+                        Design your Scene
+                    </div>
+                    <div class="panel-body">
                     <div class="btn-group-vertical" role="group" >                    
                         <button type="button" class="btn btn-default" id = 'clear'><i class="fa fa-refresh fa-2x"></i></button>
                          <button type="button" class="btn btn-default" id = 'addCube'><i class="fa fa-plus"></i>&nbsp;<i class="fa fa-cube fa-2x"></i></button>
@@ -137,14 +103,22 @@
                             <td><input type="range" class="form-control slider"  id="ks" min="1" max="10" value="5" onchange="showVal( 'ksVal', this.value)"/></td>
                             <td id = 'ksVal'>5</td>
                         </tr>
+                        <tr>
+                            <td>Shadow</td>
+                            <td><input type="range" class="form-control slider"  id="shadow" min="1" max="100" value="100" onchange="showVal( 'shadowVal', this.value/100)"/></td>
+                            <td id = 'shadowVal'>1.0</td>
+                        </tr>
                     </table>
                 </div>
             </div>
             <div class="tab-pane table-responsive" id="background">
                 <div class="btn-group-vertical" role="group" >
-                    <button type="button" class="btn btn-default" id="yellow">Yellow</button>
-                    <button type="button" class="btn btn-default" id="purple">Purple</button>
-                    <button type="button" class="btn btn-default" id="chess">Chess board</button>
+                    <div class="panel-heading">
+                        Change Wall Color
+                    </div>
+                    <button type="button" class="btn btn-lg btn-default" id="yellow" style='width: 114px; height: 114px; background-color:yellow;'>&nbsp;</button>
+                    <button type="button" class="btn btn-lg btn-default" id="purple"  style='width: 114px; height: 114px;  background-color:purple; '>&nbsp;</button>
+                    <button type="button" class="btn btn-lg btn-default" id="chess" style='width: 114px; height: 114px; background-image: url("chessboard.png"); background-repeat: no-repeat;'>&nbsp;</button>
                 </div>
             </div>
         </div>
