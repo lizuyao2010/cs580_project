@@ -1,0 +1,158 @@
+<html>
+    <head>
+    <meta charset="UTF-8">
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/font-awesome.min.css" rel="stylesheet">
+    <link href="css/rayTracer.css" rel="stylesheet">
+    <script type="text/javascript" src = "sylvester.src.js"></script>
+    <script type="text/javascript" src = "webgl-utils.js"></script>
+    </head>
+    <body>
+        <div>
+            <canvas id="canvas" width="512" height="512"></canvas>
+            <div class="panel panel-default" id = 'popup'>
+                <div class="panel-heading">
+                    Object Properties
+                </div>
+                <div class="panel-body">
+
+                        <table  class="table table-bordered property">
+                            <th>Material:</th>
+                            <tr><td><select id = 'material'  onchange="showAdjust(this.value)">
+                                      <option value="0">Diffuse</option>
+                                      <option value="1">Mirror</option>
+                                      <option value="2">Glossy</option>
+                                      <option value="3">Glassy</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr><td id='materialMore'></td></tr>
+                            <tr><td><input type="range" id="materialAdjust" min="100" max="200" value="150"></td></tr>
+                        </table>
+
+                        <table  class="table table-bordered property">
+                            <th>Color:</th>
+                            <tr><td><input type = 'text' size = '10' id = 'rgb' name='rgb'/></td></tr>
+                        </table>
+ 
+                        <table  class="table table-bordered property">
+                            <th>Scale:</th>
+                            <tr><td><input type="range" id="scale" min="1" max="25" value="10"></td></tr>
+                        </table>
+                        <button type="button" class="btn btn-info" id = 'set'>OK</button>
+                </div>
+               
+            </div>
+     
+        </div>    
+        <br>
+        <!--Use the cursor keys or WASD to control the x,y direction of the camera, and use page up and down to control the z direction of the camera.!-->
+        <div id="navBar">
+            <ul class="nav nav-pills nav-stacked" role="tablist">
+                <li class="active" id="modelLi"><a href="#model" role="tab" data-toggle="tab"><i class="fa fa-puzzle-piece fa-2x"></i></a></li>
+                <li><a href="#light" role="tab" data-toggle="tab"><i class="fa fa-lightbulb-o  fa-2x"></i></a></li>
+                <!--<li><a href="#animation" role="tab" data-toggle="tab"><i class="fa fa-youtube-play fa-2x"></i></a></li>!-->
+                <li><a href="#design" role = "tab"  data-toggle="tab"><i class="fa fa-pencil-square-o fa-2x"></i></a></li>
+                <li><a href="#settings" role = "tab"  data-toggle="tab"><i class="fa fa-tachometer fa-2x"></i></a></li>
+                <li><a href="#background" role = "tab"  data-toggle="tab"><i class="fa fa-paint-brush fa-2x"></i></a></li>
+            </ul>
+
+        </div>
+        <div class="tab-content" id="content">
+            <div class="tab-pane table-responsive " id="light">
+                <div class="panel panel-default" id="lightP">
+                    <div class="panel-heading">
+                        Light List
+                    </div>
+                    <div class="panel-body">
+                    <div class="btn-group-horizontal" role="group" id="lightsList" >                    
+                        
+                    </div>
+                    <div id="lightInfo">
+                    </div>
+                  </div>
+                </div>
+            </div>
+
+            <div class="tab-pane table-responsive active" id="model">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        Choose a model
+                    </div>
+                    <div class="panel-body">
+                    <div class="btn-group-vertical" role="group" >                    
+                        <button type="button" class="btn btn-default" id = 'uscLogo'><i class="fa fa-graduation-cap fa-2x"></i></button>
+                        <button type="button" class="btn btn-default" id = 'cubes'><i class="fa fa-cube fa-2x"></i></button>
+                        <button type="button" class="btn btn-default" id = 'spheres'><i class="fa fa-life-ring fa-2x"></i></button>
+                    </div>
+                  </div>
+                </div>
+                
+            </div>
+            <div class="tab-pane table-responsive" id="animation">
+                
+            </div>
+            <div class="tab-pane table-responsive" id="design">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        Design your Scene
+                    </div>
+                    <div class="panel-body">
+                    <div class="btn-group-vertical" role="group" >                    
+                        <button type="button" class="btn btn-default" id = 'clear'><i class="fa fa-refresh fa-2x"></i></button>
+                         <button type="button" class="btn btn-default" id = 'addCube'><i class="fa fa-plus"></i>&nbsp;<i class="fa fa-cube fa-2x"></i></button>
+                         <button type="button" class="btn btn-default" id = 'addSphere'><i class="fa fa-plus"></i>&nbsp;<i class="fa fa-dot-circle-o fa-2x"></i></button>
+                         <button type="button" class="btn btn-default" id = 'addCylinder'><i class="fa fa-plus"></i>&nbsp;<i class="fa fa-database fa-2x"></i></button>
+                          <!--<button type="button" class="btn btn-default" id = 'addCone'><i class="fa fa-plus"></i>&nbsp;<i class="fa fa-bell-o fa-2x"></i></button>!-->
+                    </div>
+                  </div>
+                </div>
+                
+            </div>
+            <div class="tab-pane table-responsive" id="settings">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        Ray tracing settings
+                    </div>
+                    <table class="table table-bordered">
+                        <tr>
+                            <td>Ray Bounce</td>
+                            <td><input type="range" class="form-control slider"  id="bounce" min="1" max="10" value="5" onchange="showVal('bounceVal',this.value)"/></td>
+                            <td id = 'bounceVal'>5</td>
+                        </tr>
+                        <tr>
+                            <td>Specular</td>
+                            <td><input type="range" class="form-control slider"  id="ks" min="1" max="10" value="5" onchange="showVal( 'ksVal', this.value)"/></td>
+                            <td id = 'ksVal'>5</td>
+                        </tr>
+                        <tr>
+                            <td>Light Radius</td>
+                            <td><input type="range" class="form-control slider"  id="shadow" min="1" max="100" value="100" onchange="showVal( 'shadowVal', this.value/100)"/></td>
+                            <td id = 'shadowVal'>1.0</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="tab-pane table-responsive" id="background">
+                <div class="btn-group-vertical" role="group" >
+                    <div class="panel-heading">
+                        Change Wall Color
+                    </div>
+                    <button type="button" class="btn btn-lg btn-default" id="yellow" style='width: 94px; height: 94px; background-color:yellow;'>&nbsp;</button>
+                    <button type="button" class="btn btn-lg btn-default" id="purple"  style='width: 94px; height: 94px;  background-color:purple; '>&nbsp;</button>
+                    <button type="button" class="btn btn-lg btn-default" id="red"  style='width: 94px; height: 94px;  background-color:red; '>&nbsp;</button>
+                    <button type="button" class="btn btn-lg btn-default" id="green"  style='width: 94px; height: 94px;  background-color:green; '>&nbsp;</button>
+                    <!--<button type="button" class="btn btn-lg btn-default" id="chess" style='width: 94px; height: 94px; background-image: url("chessboard.png"); background-repeat: no-repeat;'>&nbsp;</button>!-->
+                </div>
+            </div>
+        </div>
+        <div class = 'footer' style="position:fixed; bottom: 40px; left : 200px;">
+        <p>Use keys ADWS to change view point. Try click on object, drag to move it around.</p>
+        <p>Reference: <a href="http://madebyevan.com/webgl-path-tracing/">Path-tracing made by Evan</a></p>
+        </div>
+        <script type="text/javascript" src="jquery-1.11.1.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <script type="text/javascript" src="main.js"></script>
+        <noscript>
+    </body>
+</html>

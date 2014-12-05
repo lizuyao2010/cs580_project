@@ -614,6 +614,7 @@ UI.prototype = {
     },
     clearRoom:function(){
         this.objects.splice(1, this.objects.length-1);
+        this.objects.push(new Cube( Vector.create([-3, -3, -2.99]), Vector.create([3, 3, -3]) , nextObjectId++,Vector.create([0.75, 0.75, 0.75]),1));  
         this.renderer.setObjects(this.objects);
     },
     addCube:function(){
@@ -2052,7 +2053,7 @@ function elementPos(element) {
 }
 
 function showProperty(material, color){
-    $( "#popup" ).show("slide", { direction: "right" }, 1000);
+    $( "#popup" ).show();
     $( "#material" ).val(material);
     if(material==3) {
         $('#materialMore').text('Reflective Index');
