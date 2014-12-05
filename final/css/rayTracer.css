@@ -1,0 +1,86 @@
+canvas {
+    background: #5C4033;
+    position: absolute;
+    top:10px;
+    left:220px;
+
+}
+#popup{
+    background-color: #66B2FF;
+    width:208px;
+    position: absolute;
+    top:10px;
+    left:10px;
+    display: none;
+}
+#navBar{
+    position: absolute;
+    top:10px;
+    left:740px;
+}
+#content{
+    background-color: #66B2FF;
+    width:350px;
+    position: absolute;
+    top:10px;
+    left:820px;
+    padding: 10px;
+    color: white;
+    height: 512px;
+}
+.buttons{
+    color:#428bca;
+}
+
+.property{
+    background-color: white !important;
+}
+/* for slider */
+input[type=range]{
+    -webkit-appearance: none;
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+    width: 300px;
+    height: 5px;
+    background: #ddd;
+    border: none;
+    border-radius: 3px;
+}
+
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    border: none;
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    background: #66B2FF;
+    margin-top: -4px;
+}
+
+input[type=range]:focus {
+    outline: none;
+}
+
+input[type=range]:focus::-webkit-slider-runnable-track {
+    background: #ccc;
+}
+
+#lightInfo{
+    position: absolute;
+    top:121px;
+    left:26px;
+    display: none;
+    color:black;
+}
+#lightP{
+    height: 250px;
+}
+.lightColor{
+    color: #428bca;
+    width: 40px;
+    margin: 3px;
+}
+#ok{
+    margin:10px;
+}
